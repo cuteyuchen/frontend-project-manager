@@ -12,7 +12,11 @@ const store = useProjectStore();
 const settingsStore = useSettingsStore();
 
 const isActive = computed(() => store.activeProjectId === props.project.id);
-const isRunning = computed(() => store.runningStatus[props.project.id]);
+const isRunning = computed(() => {
+    // Check if any script in this project is running
+    if (!props.project.scripts) return false;
+    return props.project.scripts.some(s => store.runningStatus[`${props.project.id}:${s}`]);
+});
 
 function handleClick() {
     store.activeProjectId = props.project.id;
@@ -105,7 +109,7 @@ async function openFolder() {
         <div class="flex flex-wrap gap-2 relative z-10"
             v-if="(isActive || isRunning) && project.scripts && project.scripts.length">
             <button v-for="script in project.scripts" :key="script" @click.stop="handleRun(script)"
-                :disabled="isRunning"
+                :disabled="store.runningStatus[`${project.id}:${script}`]"
                 class="px-2 py-1 text-[10px] rounded border transition-all uppercase tracking-wider font-medium"
                 :class="script === 'dev' || script === 'start' || script === 'serve'
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed'

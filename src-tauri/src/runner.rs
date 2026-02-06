@@ -1,10 +1,11 @@
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader};
+use std::fs::{self, OpenOptions};
+use std::io::{BufRead, BufReader, Write};
 use std::os::windows::process::CommandExt;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 pub struct ProcessState {
     pub processes: Arc<Mutex<HashMap<String, u32>>>,
@@ -36,6 +37,26 @@ pub fn run_project_command(
     if processes_lock.contains_key(&id) {
         return Err("Project is already running".to_string());
     }
+
+    // Setup Log File
+    let log_dir = app.path().app_log_dir().map_err(|e| e.to_string())?;
+    if !log_dir.exists() {
+        fs::create_dir_all(&log_dir).map_err(|e| e.to_string())?;
+    }
+
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let log_file_path = log_dir.join(format!("{}_{}.log", id, timestamp));
+
+    let log_file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_file_path)
+        .map_err(|e| e.to_string())?;
+
+    let log_file = Arc::new(Mutex::new(log_file));
 
     let current_path = std::env::var("PATH").unwrap_or_default();
     let new_path = if !node_path.is_empty() {
@@ -110,6 +131,11 @@ pub fn run_project_command(
         }),
     );
 
+    // Write start log
+    if let Ok(mut file) = log_file.lock() {
+        let _ = writeln!(file, "Executing: {}", full_cmd);
+    }
+
     // Fix for "The filename, directory name, or volume label syntax is incorrect."
     // or "'...'" is not recognized as an internal or external command.
     //
@@ -170,6 +196,7 @@ pub fn run_project_command(
 
     let id_clone1 = id.clone();
     let app_clone1 = app.clone();
+    let log_file1 = log_file.clone();
     thread::spawn(move || {
         let mut reader = BufReader::new(stdout);
         let mut buf = Vec::new();
@@ -178,20 +205,30 @@ pub fn run_project_command(
                 break;
             }
             let line = String::from_utf8_lossy(&buf);
+            let line_str = line.trim_end();
+
+            // Emit to UI
             let _ = app_clone1.emit(
                 "project-output",
                 serde_json::json!({
                     "id": id_clone1,
                     "type": "stdout",
-                    "data": line.trim_end()
+                    "data": line_str
                 }),
             );
+
+            // Write to file
+            if let Ok(mut file) = log_file1.lock() {
+                let _ = writeln!(file, "{}", line_str);
+            }
+
             buf.clear();
         }
     });
 
     let id_clone2 = id.clone();
     let app_clone2 = app.clone();
+    let log_file2 = log_file.clone();
     thread::spawn(move || {
         let mut reader = BufReader::new(stderr);
         let mut buf = Vec::new();
@@ -200,14 +237,23 @@ pub fn run_project_command(
                 break;
             }
             let line = String::from_utf8_lossy(&buf);
+            let line_str = line.trim_end();
+
+            // Emit to UI
             let _ = app_clone2.emit(
                 "project-output",
                 serde_json::json!({
                     "id": id_clone2,
                     "type": "stderr",
-                    "data": line.trim_end()
+                    "data": line_str
                 }),
             );
+
+            // Write to file
+            if let Ok(mut file) = log_file2.lock() {
+                let _ = writeln!(file, "ERR: {}", line_str);
+            }
+
             buf.clear();
         }
     });

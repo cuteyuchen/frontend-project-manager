@@ -37,6 +37,19 @@ export const useProjectStore = defineStore('project', () => {
   // Setup listeners
   listen<any>('project-output', (event) => {
       const { id, type, data } = event.payload;
+      // Extract the script identifier from the ID if possible, but here id is usually project_id
+      // We actually need to store logs per project_id, but running status per script?
+      // Wait, the rust side receives "id" which is project.id.
+      // If we want multiple scripts per project, we need unique IDs for rust processes.
+      // Let's change the ID passed to rust to be `${project.id}:${script}`
+      
+      // But we need to handle legacy or parse it back.
+      // Actually, if we change the ID passed to invoke, we get events with that composite ID.
+      // So we should store logs keyed by that composite ID? 
+      // Or maybe we still want all logs for a project in one place?
+      // The user asked "Single project can run multiple commands simultaneously".
+      // So we need to distinguish them.
+      
       if (!logs.value[id]) logs.value[id] = [];
       logs.value[id].push(data);
   });
@@ -65,7 +78,9 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   async function runProject(project: Project, script: string) {
-    if (runningStatus.value[project.id]) return;
+    const runId = `${project.id}:${script}`;
+    
+    if (runningStatus.value[runId]) return;
 
     const nodeStore = useNodeStore();
     
@@ -92,16 +107,21 @@ export const useProjectStore = defineStore('project', () => {
     if (nodePath === 'System Default') nodePath = '';
 
     try {
-        logs.value[project.id] = []; // Clear logs
-        activeProjectId.value = project.id; // Auto select
-        runningStatus.value[project.id] = true;
+        // Initialize logs for this runId if needed, or clear if we want fresh logs per run
+        // But maybe user wants to see history?
+        // Let's clear for now to avoid confusion.
+        logs.value[runId] = []; 
+        
+        activeProjectId.value = project.id; // Auto select project
+        runningStatus.value[runId] = true;
         
         // Log debug info
-        logs.value[project.id].push(`[Runner] Selected Node Version: ${project.nodeVersion || 'None'}`);
-        logs.value[project.id].push(`[Runner] Resolved Node Path: ${nodePath || 'System Default'}`);
+        logs.value[runId].push(`[Runner] Starting script: ${script}`);
+        logs.value[runId].push(`[Runner] Selected Node Version: ${project.nodeVersion || 'None'}`);
+        logs.value[runId].push(`[Runner] Resolved Node Path: ${nodePath || 'System Default'}`);
         
         await invoke('run_project_command', {
-            id: project.id,
+            id: runId, // Use composite ID
             path: project.path,
             script,
             packageManager: project.packageManager,
@@ -109,21 +129,22 @@ export const useProjectStore = defineStore('project', () => {
         });
     } catch (e) {
         console.error(e);
-        runningStatus.value[project.id] = false;
-        logs.value[project.id].push(`Error starting project: ${e}`);
+        runningStatus.value[runId] = false;
+        logs.value[runId].push(`Error starting project: ${e}`);
     }
   }
 
-  async function stopProject(id: string) {
+  async function stopProject(project: Project, script: string) {
+      const runId = `${project.id}:${script}`;
       try {
-          await invoke('stop_project_command', { id });
+          await invoke('stop_project_command', { id: runId });
       } catch (e) {
           console.error(e);
       }
   }
 
-  function clearLog(id: string) {
-      logs.value[id] = [];
+  function clearLog(runId: string) {
+      logs.value[runId] = [];
   }
 
   return {
