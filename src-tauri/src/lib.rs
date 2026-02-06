@@ -11,6 +11,11 @@ pub fn run() {
         .manage(runner::ProcessState::new())
         .invoke_handler(tauri::generate_handler![
             nvm::get_nvm_list,
+            nvm::get_node_version,
+            nvm::get_system_node_path,
+            nvm::install_node,
+            nvm::uninstall_node,
+            nvm::use_node,
             project::scan_project,
             runner::run_project_command,
             runner::stop_project_command,

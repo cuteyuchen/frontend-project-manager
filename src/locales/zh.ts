@@ -47,7 +47,12 @@ export default {
     action: '操作',
     select: '选择',
     current: '当前使用',
-    noNodes: '暂无 Node 版本'
+    noNodes: '暂无 Node 版本',
+    installNode: '安装 Node 版本',
+    uninstall: '卸载',
+    uninstallConfirm: '确定要卸载 Node {version} 吗？',
+    setPath: '设置路径',
+    setSystemPath: '设置默认版本'
   },
   settings: {
     title: '设置',

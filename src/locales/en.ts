@@ -47,7 +47,12 @@ export default {
     action: 'Action',
     select: 'Select',
     current: 'Current',
-    noNodes: 'No Node versions found'
+    noNodes: 'No Node versions found',
+    installNode: 'Install Node Version',
+    uninstall: 'Uninstall',
+    uninstallConfirm: 'Are you sure you want to uninstall Node {version}?',
+    setPath: 'Set Path',
+    setSystemPath: 'Set System Node'
   },
   settings: {
     title: 'Settings',
