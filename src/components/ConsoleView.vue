@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { computed, ref, watch, nextTick } from 'vue';
 import { useProjectStore } from '../stores/project';
 
 const projectStore = useProjectStore();

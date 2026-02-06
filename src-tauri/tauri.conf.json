@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "frontend-manager",
+  "productName": "前端项目管理器",
   "version": "0.1.0",
   "identifier": "com.tauri-app.frontend-manager",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "frontend-manager",
+        "title": "前端项目管理器",
         "width": 800,
         "height": 600
       }
