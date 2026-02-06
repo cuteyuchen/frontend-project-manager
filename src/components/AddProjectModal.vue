@@ -27,13 +27,8 @@ const form = ref({
   scripts: [] as string[]
 });
 
-watch(() => props.editProject, (newVal) => {
-    if (newVal) {
-        form.value = { ...newVal };
-    } else {
-        resetForm();
-    }
-}, { immediate: true });
+const nodeVersions = ref<string[]>([]);
+const loading = ref(false);
 
 function resetForm() {
     form.value = {
@@ -47,8 +42,13 @@ function resetForm() {
     };
 }
 
-const nodeVersions = ref<string[]>([]);
-const loading = ref(false);
+watch(() => props.editProject, (newVal) => {
+    if (newVal) {
+        form.value = { ...newVal };
+    } else {
+        resetForm();
+    }
+}, { immediate: true });
 
 onMounted(async () => {
   try {

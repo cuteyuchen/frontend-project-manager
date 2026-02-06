@@ -15,9 +15,17 @@ export const useProjectStore = defineStore('project', () => {
   const stored = localStorage.getItem('projects');
   if (stored) {
     try {
-      projects.value = JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        // Sanitize data
+        projects.value = parsed.map((p: any) => ({
+          ...p,
+          scripts: Array.isArray(p.scripts) ? p.scripts : []
+        }));
+      }
     } catch (e) {
       console.error('Failed to parse projects', e);
+      projects.value = [];
     }
   }
 

@@ -42,7 +42,7 @@ function handleRun(script: string) {
         
         <div class="text-xs text-slate-500 truncate font-mono mb-3 opacity-80 pr-6">{{ project.path }}</div>
 
-        <div class="flex flex-wrap gap-2 relative z-10" v-if="isActive || isRunning">
+        <div class="flex flex-wrap gap-2 relative z-10" v-if="(isActive || isRunning) && project.scripts && project.scripts.length">
              <button 
                 v-for="script in project.scripts" 
                 :key="script"
