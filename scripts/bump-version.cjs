@@ -1,0 +1,78 @@
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const newVersion = process.argv[2];
+
+if (!newVersion) {
+    console.error('❌ Please provide a version number.\nUsage: npm run bump <version>');
+    process.exit(1);
+}
+
+// Validate version format (x.y.z)
+if (!/^\d+\.\d+\.\d+$/.test(newVersion)) {
+    console.error('❌ Invalid version format. Please use x.y.z (e.g., 1.0.0)');
+    process.exit(1);
+}
+
+const rootDir = path.resolve(__dirname, '..');
+
+try {
+    // 1. package.json
+    const packageJsonPath = path.join(rootDir, 'package.json');
+    const packageJsonContent = fs.readFileSync(packageJsonPath, 'utf8');
+    const packageJson = JSON.parse(packageJsonContent);
+    const oldVersion = packageJson.version;
+    packageJson.version = newVersion;
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+    console.log(`✅ Updated package.json: ${oldVersion} -> ${newVersion}`);
+
+    // 2. src-tauri/tauri.conf.json
+    const tauriConfPath = path.join(rootDir, 'src-tauri', 'tauri.conf.json');
+    const tauriConfContent = fs.readFileSync(tauriConfPath, 'utf8');
+    const tauriConf = JSON.parse(tauriConfContent);
+    tauriConf.version = newVersion;
+    fs.writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + '\n');
+    console.log(`✅ Updated src-tauri/tauri.conf.json: ${oldVersion} -> ${newVersion}`);
+
+    // 3. src-tauri/Cargo.toml
+    const cargoTomlPath = path.join(rootDir, 'src-tauri', 'Cargo.toml');
+    let cargoToml = fs.readFileSync(cargoTomlPath, 'utf8');
+    // Use regex to replace the version under [package]
+    // This assumes version is near the top or distinct enough.
+    // We'll look for `version = "..."` line.
+    const cargoRegex = /^version = ".*"$/m;
+    if (cargoRegex.test(cargoToml)) {
+        cargoToml = cargoToml.replace(cargoRegex, `version = "${newVersion}"`);
+        fs.writeFileSync(cargoTomlPath, cargoToml);
+        console.log(`✅ Updated src-tauri/Cargo.toml to ${newVersion}`);
+    } else {
+        console.warn('⚠️ Could not find version field in Cargo.toml');
+    }
+
+    // 4. Git operations
+    console.log('\n📦 Executing Git operations...');
+
+    // git add
+    execSync('git add .', { stdio: 'inherit', cwd: rootDir });
+    console.log('✅ Staged changes');
+
+    // git commit
+    execSync(`git commit -m "chore(release): v${newVersion}"`, { stdio: 'inherit', cwd: rootDir });
+    console.log(`✅ Committed changes: chore(release): v${newVersion}`);
+
+    // git tag
+    execSync(`git tag v${newVersion}`, { stdio: 'inherit', cwd: rootDir });
+    console.log(`✅ Created tag: v${newVersion}`);
+
+    // git push
+    console.log('🚀 Pushing to remote...');
+    execSync('git push', { stdio: 'inherit', cwd: rootDir });
+    execSync(`git push origin v${newVersion}`, { stdio: 'inherit', cwd: rootDir });
+    console.log('✅ Pushed changes and tags to remote');
+
+    console.log(`\n🎉 Version bumped to ${newVersion} successfully!`);
+} catch (error) {
+    console.error('❌ Error updating files:', error);
+    process.exit(1);
+}
