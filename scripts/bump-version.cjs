@@ -58,12 +58,27 @@ try {
     console.log('✅ Staged changes');
 
     // git commit
-    execSync(`git commit -m "chore(release): v${newVersion}"`, { stdio: 'inherit', cwd: rootDir });
-    console.log(`✅ Committed changes: chore(release): v${newVersion}`);
+    try {
+        execSync('git diff --cached --quiet', { stdio: 'ignore', cwd: rootDir });
+        // If exit code is 0, no changes. If 1, changes exist.
+        // Wait, execSync throws on non-zero exit code usually? 
+        // No, git diff --quiet returns 1 if there are differences.
+        // So if it throws (exit code 1), we HAVE changes.
+        // If it returns successfully (exit code 0), we have NO changes.
+        console.log('ℹ️ No changes to commit.');
+    } catch (e) {
+        // Exit code 1 means changes exist, so we commit.
+        execSync(`git commit -m "chore(release): v${newVersion}"`, { stdio: 'inherit', cwd: rootDir });
+        console.log(`✅ Committed changes: chore(release): v${newVersion}`);
+    }
 
     // git tag
-    execSync(`git tag v${newVersion}`, { stdio: 'inherit', cwd: rootDir });
-    console.log(`✅ Created tag: v${newVersion}`);
+    try {
+        execSync(`git tag v${newVersion}`, { stdio: 'inherit', cwd: rootDir });
+        console.log(`✅ Created tag: v${newVersion}`);
+    } catch (e) {
+        console.log(`⚠️ Tag v${newVersion} might already exist. Skipping creation.`);
+    }
 
     // git push
     console.log('🚀 Pushing to remote...');
