@@ -11,29 +11,8 @@ export const useProjectStore = defineStore('project', () => {
   const logs = ref<Record<string, string[]>>({});
   const activeProjectId = ref<string | null>(null);
 
-  // Load from local storage on init
-  const stored = localStorage.getItem('projects');
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        // Sanitize data
-        projects.value = parsed.map((p: any) => ({
-          ...p,
-          scripts: Array.isArray(p.scripts) ? p.scripts : []
-        }));
-      }
-    } catch (e) {
-      console.error('Failed to parse projects', e);
-      projects.value = [];
-    }
-  }
-
-  // Auto save
-  watch(projects, (newVal) => {
-    localStorage.setItem('projects', JSON.stringify(newVal));
-  }, { deep: true });
-
+  // Load from local storage removed in favor of persistence.ts
+  
   // Setup listeners
   listen<any>('project-output', (event) => {
       const { id, data } = event.payload;
@@ -147,6 +126,19 @@ export const useProjectStore = defineStore('project', () => {
       logs.value[runId] = [];
   }
 
+  async function refreshAll() {
+    const updates = await Promise.all(projects.value.map(async (p) => {
+        try {
+            const info: any = await invoke('scan_project', { path: p.path });
+            return { ...p, scripts: info.scripts || [] };
+        } catch (e) {
+            console.error(`Failed to refresh project ${p.name}`, e);
+            return p;
+        }
+    }));
+    projects.value = updates;
+  }
+
   return {
     projects,
     runningStatus,
@@ -157,6 +149,7 @@ export const useProjectStore = defineStore('project', () => {
     removeProject,
     runProject,
     stopProject,
-    clearLog
+    clearLog,
+    refreshAll
   };
 });

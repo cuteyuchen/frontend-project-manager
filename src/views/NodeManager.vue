@@ -98,13 +98,13 @@ function handleRemove(path: string, source: string, version?: string) {
             class="flex-1 bg-white/50 dark:bg-[#1e293b]/50 backdrop-blur-sm rounded-xl border border-slate-200 dark:border-slate-700/50 overflow-hidden shadow-xl transition-colors duration-300">
             <el-table :data="nodeStore.versions" style="width: 100%" height="100%"
                 :row-style="{ background: 'transparent' }" class="custom-table">
-                <el-table-column prop="version" :label="t('nodes.version')" width="180">
+                <el-table-column prop="version" :label="t('nodes.version')">
                     <template #default="{ row }">
                         <span class="font-bold text-lg font-mono text-slate-800 dark:text-slate-200">{{ row.version
                         }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="source" :label="t('nodes.source')" width="120">
+                <el-table-column prop="source" :label="t('nodes.source')">
                     <template #default="{ row }">
                         <el-tag v-if="row.source === 'system'" type="info" effect="light"
                             class="!border-slate-300 dark:!bg-slate-700/50 dark:!border-slate-600 dark:text-white">System</el-tag>
@@ -125,7 +125,7 @@ function handleRemove(path: string, source: string, version?: string) {
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column :label="t('nodes.action')" width="150" align="right">
+                <el-table-column :label="t('nodes.action')" width="120" align="center">
                     <template #default="{ row }">
                         <el-button v-if="row.source === 'custom' || row.source === 'nvm'" type="danger" size="small"
                             plain @click="handleRemove(row.path, row.source, row.version)" class="!rounded-md">{{
@@ -144,15 +144,23 @@ function handleRemove(path: string, source: string, version?: string) {
 <style scoped>
 :deep(.el-table) {
     --el-table-border-color: #e2e8f0;
-    --el-table-header-bg-color: #f8fafc;
+    --el-table-header-bg-color: transparent;
     --el-table-header-text-color: #475569;
     --el-table-bg-color: transparent;
     --el-table-tr-bg-color: transparent;
 }
 
+:deep(.el-table th.el-table__cell) {
+    background-color: transparent !important;
+}
+
+:global(html.dark) :deep(.el-table th.el-table__cell) {
+    background-color: transparent !important;
+}
+
 :global(html.dark) :deep(.el-table) {
     --el-table-border-color: #334155;
-    --el-table-header-bg-color: #1e293b;
+    --el-table-header-bg-color: transparent;
     --el-table-header-text-color: #94a3b8;
 }
 

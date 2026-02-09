@@ -72,7 +72,7 @@ async function openFolder() {
     <div @click="handleClick"
         class="p-4 rounded-xl cursor-pointer transition-all duration-200 border group relative overflow-hidden mb-3 hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-none" :class="isActive
             ? 'bg-blue-50 dark:bg-blue-600/10 border-blue-200 dark:border-blue-500/30 shadow-[0_0_20px_rgba(37,99,235,0.1)]'
-            : 'bg-white/60 dark:bg-[#1e293b]/40 border-slate-200 dark:border-slate-800 hover:bg-white/90 dark:hover:bg-[#1e293b]/80 hover:border-slate-300 dark:hover:border-slate-700'">
+            : 'bg-slate-50 dark:bg-[#1e293b]/40 border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-[#1e293b]/80 hover:border-slate-300 dark:hover:border-slate-700'">
         <div class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex gap-1">
             <button @click.stop="openEditor"
                 class="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-slate-200 dark:hover:bg-slate-700/50"

@@ -13,6 +13,7 @@ export interface Settings {
   defaultTerminal: 'cmd' | 'powershell' | 'git-bash';
   locale: 'zh' | 'en';
   themeMode: 'dark' | 'light' | 'auto';
+  autoUpdate: boolean;
 }
 
 export interface NodeVersion {

@@ -8,7 +8,8 @@ export const useSettingsStore = defineStore('settings', () => {
     editorPath: 'code',
     defaultTerminal: 'cmd',
     locale: 'zh',
-    themeMode: 'auto'
+    themeMode: 'auto',
+    autoUpdate: true
   });
 
   const stored = localStorage.getItem('settings');

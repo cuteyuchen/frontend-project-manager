@@ -71,7 +71,13 @@ async function checkUpdate() {
 onMounted(async () => {
   await loadData();
   loaded.value = true;
-  checkUpdate();
+  
+  // Auto refresh projects
+  useProjectStore().refreshAll();
+  
+  if (useSettingsStore().settings.autoUpdate !== false) {
+    checkUpdate();
+  }
 });
 
 // Watch stores and save

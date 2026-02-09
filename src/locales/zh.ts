@@ -1,6 +1,7 @@
 export default {
   common: {
     add: '添加',
+    refresh: '刷新',
     cancel: '取消',
     save: '保存',
     delete: '删除',
@@ -78,10 +79,15 @@ export default {
     exportSuccess: '导出成功',
     exportError: '导出失败',
     importSuccess: '导入成功',
-    importError: '导入失败'
+    importError: '导入失败',
+    update: '更新设置',
+    autoUpdate: '自动检查更新',
+    autoUpdateHint: '应用启动时自动检查新版本。',
+    releases: '版本历史'
   },
   project: {
     name: '项目名称',
+    namePlaceholder: '不填则自动使用 package.json 的 name',
     path: '项目路径',
     type: '项目类型',
     nodeVersion: 'Node 版本',

@@ -8,6 +8,7 @@
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "tauri-dev": "tauri dev",
     "bump": "node scripts/bump-version.cjs"
   },
   "dependencies": {

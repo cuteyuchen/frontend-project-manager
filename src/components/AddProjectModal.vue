@@ -52,13 +52,15 @@ function resetForm() {
     };
 }
 
-watch(() => props.editProject, (newVal) => {
-    if (newVal) {
-        form.value = { ...newVal };
-    } else {
-        resetForm();
-    }
-}, { immediate: true });
+watch(() => props.modelValue, (val) => {
+  if (val) {
+      if (props.editProject) {
+          form.value = { ...props.editProject };
+      } else {
+          resetForm();
+      }
+  }
+});
 
 onMounted(async () => {
   try {
@@ -85,7 +87,12 @@ async function selectFolder() {
       try {
         loading.value = true;
         const info: any = await invoke('scan_project', { path: selected });
-        form.value.name = info.name;
+        
+        // Auto fill name if empty
+        if (!form.value.name && info.name) {
+            form.value.name = info.name;
+        }
+        
         form.value.scripts = info.scripts;
       } catch (e) {
         console.error('Failed to scan project', e);
@@ -130,8 +137,8 @@ function submit() {
     destroy-on-close
   >
     <el-form label-position="top" :model="form">
-        <el-form-item :label="t('project.name')" required>
-            <el-input v-model="form.name" :placeholder="t('common.inputPlaceholder')" />
+        <el-form-item :label="t('project.name')">
+            <el-input v-model="form.name" :placeholder="t('project.namePlaceholder')" />
         </el-form-item>
         
         <el-form-item :label="t('project.path')" required>

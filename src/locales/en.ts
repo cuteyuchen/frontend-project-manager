@@ -1,6 +1,7 @@
 export default {
   common: {
     add: 'Add',
+    refresh: 'Refresh',
     cancel: 'Cancel',
     save: 'Save',
     delete: 'Delete',
@@ -78,10 +79,15 @@ export default {
     exportSuccess: 'Export success',
     exportError: 'Export failed',
     importSuccess: 'Import success',
-    importError: 'Import failed'
+    importError: 'Import failed',
+    update: 'Update Settings',
+    autoUpdate: 'Auto Check Updates',
+    autoUpdateHint: 'Automatically check for updates on startup.',
+    releases: 'Release History'
   },
   project: {
     name: 'Project Name',
+    namePlaceholder: 'Auto-fill from package.json if empty',
     path: 'Project Path',
     type: 'Project Type',
     nodeVersion: 'Node Version',

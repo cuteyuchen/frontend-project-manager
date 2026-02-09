@@ -2,7 +2,8 @@
 import { useSettingsStore } from '../stores/settings';
 import { useProjectStore } from '../stores/project';
 import { useNodeStore } from '../stores/node';
-import { open, save } from '@tauri-apps/plugin-dialog';
+import { open as openDialog, save } from '@tauri-apps/plugin-dialog';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -14,7 +15,7 @@ const nodeStore = useNodeStore();
 
 async function selectEditor() {
     try {
-        const selected = await open({
+        const selected = await openDialog({
             multiple: false,
             filters: [{
                 name: 'Executable',
@@ -56,7 +57,7 @@ async function exportData() {
 
 async function importData() {
     try {
-        const path = await open({
+        const path = await openDialog({
             multiple: false,
             filters: [{
                 name: 'JSON',
@@ -86,14 +87,18 @@ async function importData() {
         ElMessage.error(`${t('settings.importError')}: ${e}`);
     }
 }
+
+function openReleases() {
+    openUrl('https://github.com/cuteyuchen/frontend-project-manager/releases');
+}
 </script>
 
 <template>
   <div class="p-6 h-full flex flex-col overflow-y-auto">
     <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">{{ t('settings.title') }}</h1>
     
-    <div class="max-w-2xl space-y-6 pb-20">
-        <el-card class="!bg-white dark:!bg-gray-800 !border-gray-200 dark:!border-gray-700 shadow-sm">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">
+        <el-card class="!bg-white dark:!bg-gray-800 !border-gray-200 dark:!border-gray-700 shadow-sm h-full flex flex-col">
             <template #header>
                 <div class="font-bold">{{ t('settings.general') }}</div>
             </template>
@@ -127,7 +132,7 @@ async function importData() {
             </el-form>
         </el-card>
 
-        <el-card class="!bg-white dark:!bg-gray-800 !border-gray-200 dark:!border-gray-700 shadow-sm">
+        <el-card class="!bg-white dark:!bg-gray-800 !border-gray-200 dark:!border-gray-700 shadow-sm h-full flex flex-col">
             <template #header>
                 <div class="font-bold">{{ t('settings.appearance') }}</div>
             </template>
@@ -149,7 +154,29 @@ async function importData() {
             </el-form>
         </el-card>
 
-        <el-card class="!bg-white dark:!bg-gray-800 !border-gray-200 dark:!border-gray-700 shadow-sm">
+        <el-card class="!bg-white dark:!bg-gray-800 !border-gray-200 dark:!border-gray-700 shadow-sm h-full flex flex-col">
+            <template #header>
+                <div class="font-bold">{{ t('settings.update') }}</div>
+            </template>
+            <el-form label-position="top">
+                <el-form-item :label="t('settings.autoUpdate')">
+                    <el-switch v-model="settingsStore.settings.autoUpdate" />
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {{ t('settings.autoUpdateHint') }}
+                    </div>
+                </el-form-item>
+                
+                <div class="mt-4">
+                    <div class="text-sm font-medium mb-2">{{ t('settings.releases') }}</div>
+                    <el-button link type="primary" @click="openReleases">
+                        https://github.com/cuteyuchen/frontend-project-manager/releases
+                        <el-icon class="ml-1"><div class="i-mdi-open-in-new" /></el-icon>
+                    </el-button>
+                </div>
+            </el-form>
+        </el-card>
+
+        <el-card class="!bg-white dark:!bg-gray-800 !border-gray-200 dark:!border-gray-700 shadow-sm h-full flex flex-col">
             <template #header>
                 <div class="font-bold">{{ t('settings.data') }}</div>
             </template>
