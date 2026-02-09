@@ -20,75 +20,198 @@ pub struct NodeVersion {
 
 #[command]
 pub async fn install_node(version: String) -> Result<String, String> {
-    // Use cmd /C to wrap nvm command to satisfy "Terminal Only" requirement of nvm-windows
-    // Use CREATE_NEW_CONSOLE to show the window so user can see progress and bypass terminal check
-    // We add "& pause" so the window stays open regardless of success/failure
-    // allowing the user to read the output/errors.
-    let mut cmd = Command::new("cmd");
-    let command_str = format!("title Installing Node {0} & echo Executing: nvm install {0} & nvm install {0} & pause", version);
-    cmd.arg("/C").arg(&command_str);
-    
     #[cfg(target_os = "windows")]
-    cmd.creation_flags(CREATE_NEW_CONSOLE);
+    {
+        // Use cmd /C to wrap nvm command to satisfy "Terminal Only" requirement of nvm-windows
+        // Use CREATE_NEW_CONSOLE to show the window so user can see progress and bypass terminal check
+        // We add "& pause" so the window stays open regardless of success/failure
+        // allowing the user to read the output/errors.
+        let mut cmd = Command::new("cmd");
+        let command_str = format!("title Installing Node {0} & echo Executing: nvm install {0} & nvm install {0} & pause", version);
+        cmd.arg("/C").arg(&command_str);
+        
+        cmd.creation_flags(CREATE_NEW_CONSOLE);
 
-    // Use status() instead of output() to let stdout/stderr go to the new console window
-    let _ = cmd.status().map_err(|e| e.to_string())?;
+        // Use status() instead of output() to let stdout/stderr go to the new console window
+        let _ = cmd.status().map_err(|e| e.to_string())?;
 
-    // We don't check status.success() because:
-    // 1. The command includes "& pause", so exit code might be pause's exit code
-    // 2. If user closes the window manually (clicking X), exit code will be non-zero even if install succeeded
-    // We rely on the frontend to verify if the version was actually added to the list.
-    Ok("Installation process finished".to_string())
+        Ok("Installation process finished".to_string())
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let script = format!("source ~/.nvm/nvm.sh && nvm install {}", version);
+        let apple_script = format!("tell application \"Terminal\" to do script \"{}\"", script);
+        
+        let _ = Command::new("osascript")
+            .arg("-e")
+            .arg(apple_script)
+            .status()
+            .map_err(|e| e.to_string())?;
+            
+        Ok("Started in Terminal".to_string())
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        // Try common terminal emulators
+        let script = format!("source ~/.nvm/nvm.sh && nvm install {} && read -p 'Press enter to close'", version);
+        let terminals = vec![
+            ("gnome-terminal", vec!["--", "bash", "-c", &script]),
+            ("x-terminal-emulator", vec!["-e", "bash", "-c", &script]),
+            ("konsole", vec!["-e", "bash", "-c", &script]),
+            ("xfce4-terminal", vec!["-e", "bash", "-c", &script]),
+            ("xterm", vec!["-e", "bash", "-c", &script]),
+        ];
+
+        for (term, args) in terminals {
+            if Command::new(term).args(args).spawn().is_ok() {
+                return Ok("Started in Terminal".to_string());
+            }
+        }
+
+        // Fallback to background execution
+        let _ = Command::new("bash")
+            .arg("-c")
+            .arg(format!("source ~/.nvm/nvm.sh && nvm install {}", version))
+            .status()
+            .map_err(|e| e.to_string())?;
+            
+        Ok("Executed in background".to_string())
+    }
 }
 
 #[command]
 pub async fn uninstall_node(version: String) -> Result<String, String> {
-    let mut cmd = Command::new("cmd");
-    let command_str = format!("title Uninstalling Node {0} & echo Executing: nvm uninstall {0} & nvm uninstall {0} & pause", version);
-    cmd.arg("/C").arg(&command_str);
-    
     #[cfg(target_os = "windows")]
-    cmd.creation_flags(CREATE_NEW_CONSOLE);
+    {
+        let mut cmd = Command::new("cmd");
+        let command_str = format!("title Uninstalling Node {0} & echo Executing: nvm uninstall {0} & nvm uninstall {0} & pause", version);
+        cmd.arg("/C").arg(&command_str);
+        
+        cmd.creation_flags(CREATE_NEW_CONSOLE);
 
-    let _ = cmd.status().map_err(|e| e.to_string())?;
+        let _ = cmd.status().map_err(|e| e.to_string())?;
 
-    // Same reason as install_node, ignore exit code
-    Ok("Uninstall process finished".to_string())
+        Ok("Uninstall process finished".to_string())
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let script = format!("source ~/.nvm/nvm.sh && nvm uninstall {}", version);
+        let apple_script = format!("tell application \"Terminal\" to do script \"{}\"", script);
+        
+        let _ = Command::new("osascript")
+            .arg("-e")
+            .arg(apple_script)
+            .status()
+            .map_err(|e| e.to_string())?;
+            
+        Ok("Started in Terminal".to_string())
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let _ = Command::new("bash")
+            .arg("-c")
+            .arg(format!("source ~/.nvm/nvm.sh && nvm uninstall {}", version))
+            .status()
+            .map_err(|e| e.to_string())?;
+            
+        Ok("Executed in background".to_string())
+    }
 }
 
 #[command]
 pub async fn use_node(version: String) -> Result<String, String> {
-    let mut cmd = Command::new("cmd");
-    let command_str = format!("title Switching to Node {0} & echo Executing: nvm use {0} & nvm use {0} & pause", version);
-    cmd.arg("/C").arg(&command_str);
-    
     #[cfg(target_os = "windows")]
-    cmd.creation_flags(CREATE_NEW_CONSOLE);
+    {
+        let mut cmd = Command::new("cmd");
+        let command_str = format!("title Switching to Node {0} & echo Executing: nvm use {0} & nvm use {0} & pause", version);
+        cmd.arg("/C").arg(&command_str);
+        
+        cmd.creation_flags(CREATE_NEW_CONSOLE);
 
-    let _ = cmd.status().map_err(|e| e.to_string())?;
+        let _ = cmd.status().map_err(|e| e.to_string())?;
 
-    // Same reason as install_node, ignore exit code
-    Ok("Switch process finished".to_string())
+        Ok("Switch process finished".to_string())
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let script = format!("source ~/.nvm/nvm.sh && nvm use {}", version);
+        let apple_script = format!("tell application \"Terminal\" to do script \"{}\"", script);
+        
+        let _ = Command::new("osascript")
+            .arg("-e")
+            .arg(apple_script)
+            .status()
+            .map_err(|e| e.to_string())?;
+            
+        Ok("Started in Terminal".to_string())
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let _ = Command::new("bash")
+            .arg("-c")
+            .arg(format!("source ~/.nvm/nvm.sh && nvm alias default {}", version))
+            .status()
+            .map_err(|e| e.to_string())?;
+            
+        Ok("Set as default".to_string())
+    }
 }
 
 #[command]
 pub fn get_nvm_list() -> Result<Vec<NodeVersion>, String> {
-    let nvm_home = env::var("NVM_HOME").map_err(|_| "NVM_HOME not set".to_string())?;
-    let path = Path::new(&nvm_home);
     let mut versions = Vec::new();
 
-    if let Ok(entries) = fs::read_dir(path) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.is_dir() {
-                    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                        if name.starts_with("v") {
-                            versions.push(NodeVersion {
-                                version: name.to_string(),
-                                path: path.to_string_lossy().to_string(),
-                                source: "nvm".to_string(),
-                            });
+    #[cfg(target_os = "windows")]
+    {
+        let nvm_home = env::var("NVM_HOME").map_err(|_| "NVM_HOME not set".to_string())?;
+        let path = Path::new(&nvm_home);
+        if let Ok(entries) = fs::read_dir(path) {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                            if name.starts_with("v") {
+                                versions.push(NodeVersion {
+                                    version: name.to_string(),
+                                    path: path.to_string_lossy().to_string(),
+                                    source: "nvm".to_string(),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let home = env::var("HOME").unwrap_or_default();
+        let nvm_dir = env::var("NVM_DIR").unwrap_or_else(|_| format!("{}/.nvm", home));
+        let versions_path = Path::new(&nvm_dir).join("versions").join("node");
+        
+        if versions_path.exists() {
+             if let Ok(entries) = fs::read_dir(versions_path) {
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        let path = entry.path();
+                        if path.is_dir() {
+                            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                                if name.starts_with("v") {
+                                    versions.push(NodeVersion {
+                                        version: name.to_string(),
+                                        path: path.to_string_lossy().to_string(),
+                                        source: "nvm".to_string(),
+                                    });
+                                }
+                            }
                         }
                     }
                 }

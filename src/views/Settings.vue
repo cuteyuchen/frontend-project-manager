@@ -129,6 +129,8 @@ function openReleases() {
                         <el-option label="Command Prompt (cmd.exe)" value="cmd" />
                         <el-option label="PowerShell" value="powershell" />
                         <el-option label="Git Bash" value="git-bash" />
+                        <el-option label="Zsh (macOS/Linux)" value="zsh" />
+                        <el-option label="Bash (Linux/macOS)" value="bash" />
                     </el-select>
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         {{ t('settings.terminalHint') }}

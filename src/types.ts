@@ -10,7 +10,7 @@ export interface Project {
 
 export interface Settings {
   editorPath: string; // e.g. "code" or absolute path
-  defaultTerminal: 'cmd' | 'powershell' | 'git-bash';
+  defaultTerminal: 'cmd' | 'powershell' | 'git-bash' | 'zsh' | 'bash';
   locale: 'zh' | 'en';
   themeMode: 'dark' | 'light' | 'auto';
   autoUpdate: boolean;

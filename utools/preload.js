@@ -28,26 +28,56 @@ utools.onPluginOut(() => {
 
 window.services = {
     getNvmList: async () => {
-        const nvmHome = process.env.NVM_HOME;
-        if (!nvmHome) return [];
-        
-        try {
-            const dirs = fs.readdirSync(nvmHome);
-            const versions = [];
+        // Windows
+        if (process.platform === 'win32') {
+            const nvmHome = process.env.NVM_HOME;
+            if (!nvmHome) return [];
             
-            for (const dir of dirs) {
-                if (dir.startsWith('v')) {
-                    versions.push({
-                        version: dir,
-                        path: path.join(nvmHome, dir),
-                        source: 'nvm'
-                    });
+            try {
+                const dirs = fs.readdirSync(nvmHome);
+                const versions = [];
+                
+                for (const dir of dirs) {
+                    if (dir.startsWith('v')) {
+                        versions.push({
+                            version: dir,
+                            path: path.join(nvmHome, dir),
+                            source: 'nvm'
+                        });
+                    }
                 }
+                return versions;
+            } catch (e) {
+                console.error(e);
+                return [];
             }
-            return versions;
-        } catch (e) {
-            console.error(e);
-            return [];
+        } 
+        // macOS / Linux
+        else {
+            const home = process.env.HOME;
+            const nvmDir = process.env.NVM_DIR || path.join(home, '.nvm');
+            const versionsDir = path.join(nvmDir, 'versions', 'node');
+            
+            if (!fs.existsSync(versionsDir)) return [];
+            
+            try {
+                const dirs = fs.readdirSync(versionsDir);
+                const versions = [];
+                
+                for (const dir of dirs) {
+                    if (dir.startsWith('v')) {
+                        versions.push({
+                            version: dir,
+                            path: path.join(versionsDir, dir),
+                            source: 'nvm'
+                        });
+                    }
+                }
+                return versions;
+            } catch (e) {
+                console.error(e);
+                return [];
+            }
         }
     },
 
@@ -70,64 +100,134 @@ window.services = {
 
     installNode: async (version) => {
         return new Promise((resolve, reject) => {
-            // Use PowerShell to start a new elevated window that runs nvm install
-            // /c executes and terminates, but we add pause so user can see the result
-            // Start-Process -Wait ensures we wait for that window to close
-            const psCommand = `Start-Process cmd -ArgumentList '/c nvm install ${version} & pause' -Verb RunAs -Wait`;
-            exec(`powershell -Command "${psCommand}"`, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                
-                // Verify installation
-                const nvmHome = process.env.NVM_HOME;
-                if (nvmHome) {
-                    const versionPath = path.join(nvmHome, version);
-                    if (fs.existsSync(versionPath)) {
-                        resolve("Success");
-                    } else {
-                        reject(new Error("Installation failed or cancelled"));
+            if (process.platform === 'win32') {
+                // Use PowerShell to start a new elevated window that runs nvm install
+                // /c executes and terminates, but we add pause so user can see the result
+                // Start-Process -Wait ensures we wait for that window to close
+                const psCommand = `Start-Process cmd -ArgumentList '/c nvm install ${version} & pause' -Verb RunAs -Wait`;
+                exec(`powershell -Command "${psCommand}"`, (error) => {
+                    if (error) {
+                        reject(error);
+                        return;
                     }
-                } else {
-                    resolve("Done (Verification skipped)");
+                    
+                    // Verify installation
+                    const nvmHome = process.env.NVM_HOME;
+                    if (nvmHome) {
+                        const versionPath = path.join(nvmHome, version);
+                        if (fs.existsSync(versionPath)) {
+                            resolve("Success");
+                        } else {
+                            reject(new Error("Installation failed or cancelled"));
+                        }
+                    } else {
+                        resolve("Done (Verification skipped)");
+                    }
+                });
+            } else if (process.platform === 'darwin') {
+                // macOS: Use AppleScript to open Terminal
+                const script = `source ~/.nvm/nvm.sh && nvm install ${version}`;
+                const appleScript = `tell application "Terminal" to do script "${script}"`;
+                exec(`osascript -e '${appleScript}'`, (error) => {
+                    if (error) reject(error);
+                    else resolve("Started in Terminal");
+                });
+            } else {
+                // Linux: Try common terminal emulators or fallback to background
+                const script = `source ~/.nvm/nvm.sh && nvm install ${version} && read -p "Press enter to close"`;
+                const terminals = [
+                    { cmd: 'gnome-terminal', args: ['--', 'bash', '-c', script] },
+                    { cmd: 'x-terminal-emulator', args: ['-e', `bash -c "${script}"`] },
+                    { cmd: 'konsole', args: ['-e', 'bash', '-c', script] },
+                    { cmd: 'xfce4-terminal', args: ['-e', `bash -c "${script}"`] },
+                    { cmd: 'xterm', args: ['-e', `bash -c "${script}"`] }
+                ];
+
+                let started = false;
+                for (const t of terminals) {
+                    try {
+                        spawn(t.cmd, t.args, { detached: true, stdio: 'ignore' });
+                        started = true;
+                        break;
+                    } catch (e) {}
                 }
-            });
+
+                if (started) {
+                    resolve("Started in Terminal");
+                } else {
+                    // Fallback: run in background and capture output
+                    exec(`bash -c "source ~/.nvm/nvm.sh && nvm install ${version}"`, (error, stdout, stderr) => {
+                         if (error) reject(new Error(stderr || error.message));
+                         else resolve("Success");
+                    });
+                }
+            }
         });
     },
     
     uninstallNode: async (version) => {
         return new Promise((resolve, reject) => {
-            const psCommand = `Start-Process cmd -ArgumentList '/c nvm uninstall ${version} & pause' -Verb RunAs -Wait`;
-            exec(`powershell -Command "${psCommand}"`, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                
-                // Verify uninstallation
-                const nvmHome = process.env.NVM_HOME;
-                if (nvmHome) {
-                    const versionPath = path.join(nvmHome, version);
-                    if (!fs.existsSync(versionPath)) {
-                        resolve("Success");
-                    } else {
-                        reject(new Error("Uninstallation failed or cancelled"));
+            if (process.platform === 'win32') {
+                const psCommand = `Start-Process cmd -ArgumentList '/c nvm uninstall ${version} & pause' -Verb RunAs -Wait`;
+                exec(`powershell -Command "${psCommand}"`, (error) => {
+                    if (error) {
+                        reject(error);
+                        return;
                     }
-                } else {
-                    resolve("Done");
-                }
-            });
+                    
+                    // Verify uninstallation
+                    const nvmHome = process.env.NVM_HOME;
+                    if (nvmHome) {
+                        const versionPath = path.join(nvmHome, version);
+                        if (!fs.existsSync(versionPath)) {
+                            resolve("Success");
+                        } else {
+                            reject(new Error("Uninstallation failed or cancelled"));
+                        }
+                    } else {
+                        resolve("Done");
+                    }
+                });
+            } else if (process.platform === 'darwin') {
+                const script = `source ~/.nvm/nvm.sh && nvm uninstall ${version}`;
+                const appleScript = `tell application "Terminal" to do script "${script}"`;
+                exec(`osascript -e '${appleScript}'`, (error) => {
+                    if (error) reject(error);
+                    else resolve("Started in Terminal");
+                });
+            } else {
+                // Linux
+                 exec(`bash -c "source ~/.nvm/nvm.sh && nvm uninstall ${version}"`, (error, stdout, stderr) => {
+                     if (error) reject(new Error(stderr || error.message));
+                     else resolve("Success");
+                 });
+            }
         });
     },
     
     useNode: async (version) => {
         return new Promise((resolve, reject) => {
-            const psCommand = `Start-Process cmd -ArgumentList '/c nvm use ${version} & pause' -Verb RunAs -Wait`;
-            exec(`powershell -Command "${psCommand}"`, (error) => {
-                if (error) reject(error);
-                else resolve("Done");
-            });
+            if (process.platform === 'win32') {
+                const psCommand = `Start-Process cmd -ArgumentList '/c nvm use ${version} & pause' -Verb RunAs -Wait`;
+                exec(`powershell -Command "${psCommand}"`, (error) => {
+                    if (error) reject(error);
+                    else resolve("Done");
+                });
+            } else if (process.platform === 'darwin') {
+                 const script = `source ~/.nvm/nvm.sh && nvm use ${version}`;
+                 const appleScript = `tell application "Terminal" to do script "${script}"`;
+                 exec(`osascript -e '${appleScript}'`, (error) => {
+                     if (error) reject(error);
+                     else resolve("Done");
+                 });
+            } else {
+                 // Linux: nvm use affects current shell only, usually useless for future commands
+                 // But we can run it to set default if alias default is used
+                 exec(`bash -c "source ~/.nvm/nvm.sh && nvm alias default ${version}"`, (error) => {
+                     if (error) reject(error);
+                     else resolve("Done (Set as default)");
+                 });
+            }
         });
     },
 
@@ -182,8 +282,16 @@ window.services = {
             if (nodePath) {
                  let nodeDir = nodePath;
                  try {
+                     // On Unix, nodePath is usually .../bin/node
+                     // We need the bin directory
                      if (fs.statSync(nodePath).isFile()) {
                          nodeDir = path.dirname(nodePath);
+                     } else {
+                         // If it's a directory (e.g. version root), append /bin
+                         // Check if bin exists
+                         if (fs.existsSync(path.join(nodePath, 'bin'))) {
+                             nodeDir = path.join(nodePath, 'bin');
+                         }
                      }
                  } catch (e) {}
                  
