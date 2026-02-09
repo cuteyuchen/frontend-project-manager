@@ -55,7 +55,7 @@ async function checkUpdate() {
         });
 
         try {
-          const downloadUrl = `https://github.com/cuteyuchen/frontend-project-manager/releases/download/${latestTag}/frontend-manager.exe`;
+          const downloadUrl = `https://github.com/cuteyuchen/frontend-project-manager/releases/download/${latestTag}/Frontend.Project.Manager_${latestTag.replace(/^v/, '')}_x64-setup.exe`;
           await invoke('install_update', { url: downloadUrl });
         } catch (error) {
           loading.close();
@@ -75,6 +75,7 @@ onMounted(async () => {
   // Auto refresh projects
   useProjectStore().refreshAll();
   
+  // Default to true if undefined (legacy support)
   if (useSettingsStore().settings.autoUpdate !== false) {
     checkUpdate();
   }
