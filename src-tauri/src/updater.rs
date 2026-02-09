@@ -1,7 +1,8 @@
 use std::fs::File;
 use std::process::Command;
 use std::env;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
+use std::io::{Read, Write};
 
 #[tauri::command]
 pub async fn install_update(app: AppHandle, url: String) -> Result<(), String> {
@@ -10,8 +11,11 @@ pub async fn install_update(app: AppHandle, url: String) -> Result<(), String> {
     // Use blocking task to avoid blocking the async runtime with file I/O and synchronous download
     // But since we added blocking feature to reqwest, we can use it inside spawn_blocking
     
+    let app_handle = app.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
         let mut response = reqwest::blocking::get(&url).map_err(|e| e.to_string())?;
+        
+        let total_size = response.content_length().unwrap_or(0);
         
         let mut temp_path = env::temp_dir();
         temp_path.push("frontend-manager-update.exe");
@@ -19,7 +23,27 @@ pub async fn install_update(app: AppHandle, url: String) -> Result<(), String> {
         println!("Downloading to: {:?}", temp_path);
         
         let mut dest = File::create(&temp_path).map_err(|e| e.to_string())?;
-        response.copy_to(&mut dest).map_err(|e| e.to_string())?;
+        
+        let mut buffer = [0; 16384]; // 16KB buffer
+        let mut downloaded: u64 = 0;
+        let mut last_percentage: u64 = 0;
+
+        loop {
+            let bytes_read = response.read(&mut buffer).map_err(|e| e.to_string())?;
+            if bytes_read == 0 {
+                break;
+            }
+            dest.write_all(&buffer[..bytes_read]).map_err(|e| e.to_string())?;
+            downloaded += bytes_read as u64;
+
+            if total_size > 0 {
+                let percentage = (downloaded as f64 / total_size as f64 * 100.0) as u64;
+                if percentage > last_percentage {
+                    let _ = app_handle.emit("download-progress", percentage);
+                    last_percentage = percentage;
+                }
+            }
+        }
         
         Ok::<std::path::PathBuf, String>(temp_path)
     }).await.map_err(|e| e.to_string())??;

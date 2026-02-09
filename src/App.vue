@@ -2,6 +2,7 @@
 import { ref, onMounted, watch, h } from 'vue';
 import { getVersion } from '@tauri-apps/api/app';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { ElMessageBox, ElMessage, ElLoading } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import Sidebar from './components/Sidebar.vue';
@@ -62,16 +63,24 @@ async function checkUpdate() {
       ).then(async () => {
         const loading = ElLoading.service({
           lock: true,
-          text: t('update.downloading'),
+          text: `${t('update.downloading')} 0%`,
           background: 'rgba(0, 0, 0, 0.7)',
         });
 
+        let unlisten: (() => void) | undefined;
+
         try {
+          unlisten = await listen<number>('download-progress', (event) => {
+             loading.setText(`${t('update.downloading')} ${event.payload}%`);
+          });
+
           const downloadUrl = `https://github.com/cuteyuchen/frontend-project-manager/releases/download/${latestTag}/Frontend.Project.Manager_${latestTag.replace(/^v/, '')}_x64-setup.exe`;
           await invoke('install_update', { url: downloadUrl });
         } catch (error) {
-          loading.close();
           ElMessage.error(t('update.error', { error }));
+        } finally {
+          if (unlisten) unlisten();
+          loading.close();
         }
       }).catch(() => { });
     }

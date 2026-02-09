@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
 import { useSettingsStore } from '../stores/settings';
 import { useProjectStore } from '../stores/project';
 import { useNodeStore } from '../stores/node';
 import { open as openDialog, save } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { getVersion } from '@tauri-apps/api/app';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 
@@ -12,6 +14,11 @@ const { t } = useI18n();
 const settingsStore = useSettingsStore();
 const projectStore = useProjectStore();
 const nodeStore = useNodeStore();
+const appVersion = ref('');
+
+onMounted(async () => {
+    appVersion.value = await getVersion();
+});
 
 async function selectEditor() {
     try {
@@ -159,6 +166,10 @@ function openReleases() {
                 <div class="font-bold">{{ t('settings.update') }}</div>
             </template>
             <el-form label-position="top">
+                <el-form-item :label="t('settings.version')">
+                    <el-tag type="info" effect="plain" round>v{{ appVersion }}</el-tag>
+                </el-form-item>
+
                 <el-form-item :label="t('settings.autoUpdate')">
                     <el-switch v-model="settingsStore.settings.autoUpdate" />
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">

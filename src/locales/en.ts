@@ -84,7 +84,8 @@ export default {
     update: 'Update Settings',
     autoUpdate: 'Auto Check Updates',
     autoUpdateHint: 'Automatically check for updates on startup.',
-    releases: 'Release History'
+    releases: 'Release History',
+    version: 'Current Version'
   },
   project: {
     name: 'Project Name',

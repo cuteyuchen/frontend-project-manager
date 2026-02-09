@@ -84,7 +84,8 @@ export default {
     update: '更新设置',
     autoUpdate: '自动检查更新',
     autoUpdateHint: '应用启动时自动检查新版本。',
-    releases: '版本历史'
+    releases: '版本历史',
+    version: '当前版本'
   },
   project: {
     name: '项目名称',
