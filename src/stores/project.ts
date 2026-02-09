@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { api } from '../api';
 import type { Project } from '../types';
 import { useNodeStore } from './node';
 
@@ -14,8 +13,7 @@ export const useProjectStore = defineStore('project', () => {
   // Load from local storage removed in favor of persistence.ts
   
   // Setup listeners
-  listen<any>('project-output', (event) => {
-      const { id, data } = event.payload;
+  api.onProjectOutput(({ id, data }) => {
       // Extract the script identifier from the ID if possible, but here id is usually project_id
       // We actually need to store logs per project_id, but running status per script?
       // Wait, the rust side receives "id" which is project.id.
@@ -33,8 +31,7 @@ export const useProjectStore = defineStore('project', () => {
       logs.value[id].push(data);
   });
 
-  listen<any>('project-exit', (event) => {
-      const { id } = event.payload;
+  api.onProjectExit(({ id }) => {
       runningStatus.value[id] = false;
       if (!logs.value[id]) logs.value[id] = [];
       logs.value[id].push('[Process exited]');
@@ -99,13 +96,13 @@ export const useProjectStore = defineStore('project', () => {
         logs.value[runId].push(`[Runner] Selected Node Version: ${project.nodeVersion || 'None'}`);
         logs.value[runId].push(`[Runner] Resolved Node Path: ${nodePath || 'System Default'}`);
         
-        await invoke('run_project_command', {
-            id: runId, // Use composite ID
-            path: project.path,
+        await api.runProjectCommand(
+            runId,
+            project.path,
             script,
-            packageManager: project.packageManager,
+            project.packageManager,
             nodePath
-        });
+        );
     } catch (e) {
         console.error(e);
         runningStatus.value[runId] = false;
@@ -116,7 +113,7 @@ export const useProjectStore = defineStore('project', () => {
   async function stopProject(project: Project, script: string) {
       const runId = `${project.id}:${script}`;
       try {
-          await invoke('stop_project_command', { id: runId });
+          await api.stopProjectCommand(runId);
       } catch (e) {
           console.error(e);
       }
@@ -129,7 +126,7 @@ export const useProjectStore = defineStore('project', () => {
   async function refreshAll() {
     const updates = await Promise.all(projects.value.map(async (p) => {
         try {
-            const info: any = await invoke('scan_project', { path: p.path });
+            const info: any = await api.scanProject(p.path);
             return { ...p, scripts: info.scripts || [] };
         } catch (e) {
             console.error(`Failed to refresh project ${p.name}`, e);

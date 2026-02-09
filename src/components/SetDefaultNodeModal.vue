@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { useNodeStore } from '../stores/node';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
-import { invoke } from '@tauri-apps/api/core';
+import { api } from '../api';
 
 const { t } = useI18n();
 const props = defineProps<{ modelValue: boolean }>();
@@ -29,7 +29,7 @@ async function submit() {
   try {
     loading.value = true;
     // Use nvm use
-    await invoke('use_node', { version: selectedVersion.value });
+    await api.useNode(selectedVersion.value);
     
     // After switching, we should update system node path detection
     // Wait a bit for nvm to switch symlink
@@ -37,7 +37,7 @@ async function submit() {
         const savedPath = localStorage.getItem('system_node_path');
         // If we are using "System Default" (which means auto-detect), we should force re-detect
         if (!savedPath || savedPath === 'System Default') {
-             const realPath = await invoke<string>('get_system_node_path');
+             const realPath = await api.getSystemNodePath();
              if (realPath !== 'System Default') {
                  // Update store directly to reflect change immediately
                  const idx = nodeStore.versions.findIndex(v => v.source === 'system');

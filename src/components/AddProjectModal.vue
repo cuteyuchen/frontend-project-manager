@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
+import { api } from '../api';
 import type { Project } from '../types';
 import { useI18n } from 'vue-i18n';
 
@@ -64,7 +63,7 @@ watch(() => props.modelValue, (val) => {
 
 onMounted(async () => {
   try {
-    const list: any[] = await invoke('get_nvm_list');
+    const list = await api.getNvmList();
     nodeVersions.value = list.map(v => v.version);
     if (nodeVersions.value.length > 0) {
       form.value.nodeVersion = nodeVersions.value[0];
@@ -76,7 +75,7 @@ onMounted(async () => {
 
 async function selectFolder() {
   try {
-    const selected = await open({
+    const selected = await api.openDialog({
       directory: true,
       multiple: false,
     });
@@ -86,7 +85,7 @@ async function selectFolder() {
       // Auto scan
       try {
         loading.value = true;
-        const info: any = await invoke('scan_project', { path: selected });
+        const info = await api.scanProject(selected);
         
         // Auto fill name if empty
         if (!form.value.name && info.name) {

@@ -6,7 +6,7 @@ import InstallNodeModal from '../components/InstallNodeModal.vue';
 import SetDefaultNodeModal from '../components/SetDefaultNodeModal.vue';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
-import { invoke } from '@tauri-apps/api/core';
+import { api } from '../api';
 
 const { t } = useI18n();
 const nodeStore = useNodeStore();
@@ -15,7 +15,7 @@ const showInstallModal = ref(false);
 const showSetDefaultModal = ref(false);
 
 function openFolder(path: string) {
-    invoke('open_folder', { path }).catch(err => {
+    api.openFolder(path).catch(err => {
         ElMessage.error(t('common.error') + ': ' + err);
     });
 }

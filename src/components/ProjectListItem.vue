@@ -3,7 +3,7 @@ import type { Project } from '../types';
 import { useProjectStore } from '../stores/project';
 import { useSettingsStore } from '../stores/settings';
 import { computed } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
+import { api } from '../api';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 
@@ -48,10 +48,7 @@ function handleDelete() {
 
 async function openEditor() {
     try {
-        await invoke('open_in_editor', {
-            path: props.project.path,
-            editor: settingsStore.settings.editorPath
-        });
+        await api.openInEditor(props.project.path, settingsStore.settings.editorPath);
     } catch (e) {
         console.error(e);
         ElMessage.error(`${t('common.error')}: ${e}`);
@@ -60,7 +57,7 @@ async function openEditor() {
 
 async function openFolder() {
     try {
-        await invoke('open_folder', { path: props.project.path });
+        await api.openFolder(props.project.path);
     } catch (e) {
         console.error(e);
         ElMessage.error(`${t('common.error')}: ${e}`);

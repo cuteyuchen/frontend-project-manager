@@ -6,8 +6,18 @@ import UnoCSS from "unocss/vite";
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
-export default defineConfig(async () => ({
-  plugins: [vue(), UnoCSS()],
+export default defineConfig(async ({ mode }) => {
+  const isUtools = mode === 'utools';
+  return {
+    base: isUtools ? './' : '/',
+    plugins: [vue(), UnoCSS()],
+    build: {
+      outDir: isUtools ? 'dist-utools' : 'dist',
+      emptyOutDir: true,
+    },
+    define: {
+      'import.meta.env.VITE_TARGET': JSON.stringify(isUtools ? 'utools' : 'tauri')
+    },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
@@ -30,4 +40,5 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
-}));
+  };
+});

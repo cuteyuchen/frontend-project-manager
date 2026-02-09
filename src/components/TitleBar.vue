@@ -1,17 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { api } from '../api';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const isPinned = ref(false);
 const isMaximized = ref(false);
-const appWindow = getCurrentWindow();
 let unlistenResize: (() => void) | null = null;
 
 async function checkMaximized() {
   try {
-    isMaximized.value = await appWindow.isMaximized();
+    isMaximized.value = await api.windowIsMaximized();
   } catch (error) {
     console.error('Failed to check maximized state:', error);
   }
@@ -20,7 +19,7 @@ async function checkMaximized() {
 async function togglePin() {
   try {
     isPinned.value = !isPinned.value;
-    await appWindow.setAlwaysOnTop(isPinned.value);
+    await api.windowSetAlwaysOnTop(isPinned.value);
   } catch (error) {
     console.error('Failed to toggle pin:', error);
     isPinned.value = !isPinned.value; // Revert state on error
@@ -29,7 +28,7 @@ async function togglePin() {
 
 async function minimize() {
   try {
-    await appWindow.minimize();
+    await api.windowMinimize();
   } catch (error) {
     console.error('Failed to minimize:', error);
   }
@@ -38,11 +37,11 @@ async function minimize() {
 async function toggleMaximize() {
   try {
     // Manually check and toggle to ensure reliability
-    const current = await appWindow.isMaximized();
+    const current = await api.windowIsMaximized();
     if (current) {
-      await appWindow.unmaximize();
+      await api.windowUnmaximize();
     } else {
-      await appWindow.maximize();
+      await api.windowMaximize();
     }
     // Update state immediately
     isMaximized.value = !current;
@@ -53,7 +52,7 @@ async function toggleMaximize() {
 
 async function close() {
   try {
-    await appWindow.close();
+    await api.windowClose();
   } catch (error) {
     console.error('Failed to close:', error);
   }
@@ -63,7 +62,7 @@ onMounted(async () => {
   await checkMaximized();
   // Listen for resize events to update the maximize state icon
   try {
-    unlistenResize = await appWindow.listen('tauri://resize', () => {
+    unlistenResize = await api.onWindowResize(() => {
       checkMaximized();
     });
   } catch (e) {

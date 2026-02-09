@@ -3,10 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useSettingsStore } from '../stores/settings';
 import { useProjectStore } from '../stores/project';
 import { useNodeStore } from '../stores/node';
-import { open as openDialog, save } from '@tauri-apps/plugin-dialog';
-import { openUrl } from '@tauri-apps/plugin-opener';
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
-import { getVersion } from '@tauri-apps/api/app';
+import { api } from '../api';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 
@@ -15,14 +12,15 @@ const settingsStore = useSettingsStore();
 const projectStore = useProjectStore();
 const nodeStore = useNodeStore();
 const appVersion = ref('');
+const target = import.meta.env.VITE_TARGET;
 
 onMounted(async () => {
-    appVersion.value = await getVersion();
+    appVersion.value = await api.getAppVersion();
 });
 
 async function selectEditor() {
     try {
-        const selected = await openDialog({
+        const selected = await api.openDialog({
             multiple: false,
             filters: [{
                 name: 'Executable',
@@ -39,7 +37,7 @@ async function selectEditor() {
 
 async function exportData() {
     try {
-        const path = await save({
+        const path = await api.saveDialog({
             filters: [{
                 name: 'JSON',
                 extensions: ['json']
@@ -53,7 +51,7 @@ async function exportData() {
                 settings: settingsStore.settings,
                 customNodes: nodeStore.versions.filter(v => v.source === 'custom')
             };
-            await writeTextFile(path, JSON.stringify(data, null, 2));
+            await api.writeTextFile(path, JSON.stringify(data, null, 2));
             ElMessage.success(t('settings.exportSuccess'));
         }
     } catch (e) {
@@ -64,7 +62,7 @@ async function exportData() {
 
 async function importData() {
     try {
-        const path = await openDialog({
+        const path = await api.openDialog({
             multiple: false,
             filters: [{
                 name: 'JSON',
@@ -73,7 +71,7 @@ async function importData() {
         });
 
         if (path && typeof path === 'string') {
-            const content = await readTextFile(path);
+            const content = await api.readTextFile(path);
             const data = JSON.parse(content);
             
             if (data.projects) projectStore.projects = data.projects;
@@ -96,7 +94,7 @@ async function importData() {
 }
 
 function openReleases() {
-    openUrl('https://github.com/cuteyuchen/frontend-project-manager/releases');
+    api.openUrl('https://github.com/cuteyuchen/frontend-project-manager/releases');
 }
 </script>
 
@@ -170,7 +168,7 @@ function openReleases() {
                     <el-tag type="info" effect="plain" round>v{{ appVersion }}</el-tag>
                 </el-form-item>
 
-                <el-form-item :label="t('settings.autoUpdate')">
+                <el-form-item :label="t('settings.autoUpdate')" v-if="target !== 'utools'">
                     <el-switch v-model="settingsStore.settings.autoUpdate" />
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         {{ t('settings.autoUpdateHint') }}

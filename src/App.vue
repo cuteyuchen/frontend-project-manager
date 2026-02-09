@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, h } from 'vue';
-import { getVersion } from '@tauri-apps/api/app';
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { api } from './api';
 import { ElMessageBox, ElMessage, ElLoading } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import Sidebar from './components/Sidebar.vue';
@@ -14,6 +12,8 @@ import { loadData, saveData } from './utils/persistence';
 import { useProjectStore } from './stores/project';
 import { useSettingsStore } from './stores/settings';
 import { useNodeStore } from './stores/node';
+
+const target = import.meta.env.VITE_TARGET;
 
 const { t } = useI18n();
 const currentView = ref<'dashboard' | 'settings' | 'nodes'>('dashboard');
@@ -38,7 +38,7 @@ async function checkUpdate() {
     const data = await response.json();
     const latestTag = data.tag_name; // e.g., "v0.1.1"
     const remoteVersion = latestTag.replace(/^v/, '');
-    const localVersion = await getVersion();
+    const localVersion = await api.getAppVersion();
 
     if (compareVersions(remoteVersion, localVersion) > 0) {
       ElMessageBox.confirm(
@@ -49,7 +49,7 @@ async function checkUpdate() {
               class: 'text-blue-500 hover:text-blue-600 cursor-pointer underline',
               onClick: (e: Event) => {
                 e.preventDefault();
-                invoke('open_url', { url: 'https://github.com/cuteyuchen/frontend-project-manager/releases' });
+                api.openUrl('https://github.com/cuteyuchen/frontend-project-manager/releases');
               }
             }, 'Open Download Page')
           ])
@@ -70,12 +70,12 @@ async function checkUpdate() {
         let unlisten: (() => void) | undefined;
 
         try {
-          unlisten = await listen<number>('download-progress', (event) => {
-             loading.setText(`${t('update.downloading')} ${event.payload}%`);
+          unlisten = await api.onDownloadProgress((percentage) => {
+             loading.setText(`${t('update.downloading')} ${percentage}%`);
           });
 
           const downloadUrl = `https://github.com/cuteyuchen/frontend-project-manager/releases/download/${latestTag}/Frontend.Project.Manager_${latestTag.replace(/^v/, '')}_x64-setup.exe`;
-          await invoke('install_update', { url: downloadUrl });
+          await api.installUpdate(downloadUrl);
         } catch (error) {
           ElMessage.error(t('update.error', { error }));
         } finally {
@@ -121,9 +121,10 @@ watch(() => nodeStore.versions, triggerSave, { deep: true });
 </script>
 
 <template>
-  <TitleBar />
+  <TitleBar v-if="target !== 'utools'" />
   <div
-    class="flex h-screen w-screen bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-gray-100 font-sans overflow-hidden select-none transition-colors duration-300 antialiased pt-8">
+    class="flex h-screen w-screen bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-gray-100 font-sans overflow-hidden select-none transition-colors duration-300 antialiased"
+    :class="{ 'pt-8': target !== 'utools' }">
     <Sidebar @navigate="v => currentView = v" />
     <main class="flex-1 h-full overflow-hidden relative">
       <!-- Modern deep gradient background -->

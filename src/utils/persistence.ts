@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { api } from '../api';
 import { useProjectStore } from '../stores/project';
 import { useSettingsStore } from '../stores/settings';
 import { useNodeStore } from '../stores/node';
@@ -17,10 +17,7 @@ export async function saveData() {
       customNodes: nodeStore.versions.filter(v => v.source === 'custom')
     };
     
-    await invoke('write_config_file', { 
-        filename: FILE_NAME, 
-        content: JSON.stringify(data, null, 2) 
-    });
+    await api.writeConfigFile(FILE_NAME, JSON.stringify(data, null, 2));
     console.log('Data saved to', FILE_NAME);
   } catch (e) {
     console.error('Failed to save data:', e);
@@ -29,7 +26,7 @@ export async function saveData() {
 
 export async function loadData() {
   try {
-    const content = await invoke<string>('read_config_file', { filename: FILE_NAME });
+    const content = await api.readConfigFile(FILE_NAME);
     if (!content) return;
 
     const data = JSON.parse(content);

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, onMounted } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
+import { api } from '../api';
 import type { NodeVersion } from '../types';
 
 export const useNodeStore = defineStore('node', () => {
@@ -23,7 +23,7 @@ export const useNodeStore = defineStore('node', () => {
   const loadNvmNodes = async () => {
     try {
       loading.value = true;
-      const nvmNodes = await invoke<NodeVersion[]>('get_nvm_list');
+      const nvmNodes = await api.getNvmList();
       // Filter out existing nvm nodes to avoid duplicates if re-fetching
       versions.value = versions.value.filter(v => v.source !== 'nvm');
       versions.value.push(...nvmNodes);
@@ -82,7 +82,7 @@ export const useNodeStore = defineStore('node', () => {
         // let's try to execute `node -v` using that path.
 
         if (newPath && newPath !== 'System Default') {
-          const ver = await invoke<string>('get_node_version', { path: newPath });
+          const ver = await api.getNodeVersion(newPath);
           if (ver) {
             versions.value[idx].version = ver;
           }
@@ -101,7 +101,7 @@ export const useNodeStore = defineStore('node', () => {
   const installNode = async (version: string) => {
     try {
       loading.value = true;
-      await invoke('install_node', { version });
+      await api.installNode(version);
       // After install attempt, reload list to see if it actually appeared
       await loadNvmNodes();
       
@@ -135,7 +135,7 @@ export const useNodeStore = defineStore('node', () => {
   const uninstallNode = async (version: string) => {
     try {
       loading.value = true;
-      await invoke('uninstall_node', { version });
+      await api.uninstallNode(version);
 
       // Verification logic for uninstall
       await loadNvmNodes();
@@ -165,7 +165,7 @@ export const useNodeStore = defineStore('node', () => {
       // If no saved path, try to resolve it automatically
       if (!savedPath || savedPath === 'System Default') {
         try {
-          const realPath = await invoke<string>('get_system_node_path');
+          const realPath = await api.getSystemNodePath();
           // Don't save it to localStorage yet, just use it for display
           // Or maybe saving it is better? 
           // Let's save it if it's not "System Default"
@@ -183,7 +183,7 @@ export const useNodeStore = defineStore('node', () => {
       let version = '默认';
 
       try {
-        const v = await invoke<string>('get_node_version', { path: savedPath });
+        const v = await api.getNodeVersion(savedPath!);
         if (v) version = v;
       } catch (e) { }
 

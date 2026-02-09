@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useNodeStore } from '../stores/node';
-import { open } from '@tauri-apps/plugin-dialog';
+import { api } from '../api';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -21,7 +21,7 @@ const form = ref({
 });
 
 async function selectFolder() {
-  const selected = await open({
+  const selected = await api.openDialog({
     directory: true,
     multiple: false,
   });
