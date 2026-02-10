@@ -39,7 +39,8 @@ export default {
     deleteProjectConfirm: 'Are you sure you want to delete project "{name}"? This action cannot be undone.',
     selectScript: 'Select a script to view output',
     clickRunHint: 'Click run buttons above to start scripts',
-    waitingForOutput: 'Waiting for output...'
+    waitingForOutput: 'Waiting for output...',
+    dropToImport: 'Drop folder here to import project'
   },
   nodes: {
     title: 'Node Version Manager',

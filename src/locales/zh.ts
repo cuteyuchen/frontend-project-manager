@@ -39,7 +39,8 @@ export default {
     deleteProjectConfirm: '确定要删除项目 "{name}" 吗？此操作无法撤销。',
     selectScript: '请选择一个脚本以查看输出',
     clickRunHint: '点击上方的运行按钮以启动脚本',
-    waitingForOutput: '等待输出...'
+    waitingForOutput: '等待输出...',
+    dropToImport: '拖动文件夹到此处以导入项目'
   },
   nodes: {
     title: 'Node 版本管理',

@@ -27,6 +27,11 @@ fn write_config_file(filename: String, content: String) -> Result<(), String> {
     std::fs::write(path, content).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn get_startup_args() -> Vec<String> {
+    std::env::args().collect()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut app = tauri::Builder::default()
@@ -49,7 +54,8 @@ pub fn run() {
             runner::open_url,
             updater::install_update,
             read_config_file,
-            write_config_file
+            write_config_file,
+            get_startup_args
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application");

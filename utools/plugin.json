@@ -16,6 +16,20 @@
                 "fpm"
             ],
             "windowType": "system"
+        },
+        {
+            "code": "import_project",
+            "explain": "导入前端项目",
+            "cmds": [
+                {
+                    "type": "files",
+                    "label": "导入项目",
+                    "fileType": "directory",
+                    "match": "/.*/",
+                    "minLength": 1
+                }
+            ],
+            "windowType": "system"
         }
     ]
 }

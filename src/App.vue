@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, h } from 'vue';
+import { ref, onMounted, onUnmounted, watch, h } from 'vue';
 import { api } from './api';
 import { ElMessageBox, ElMessage, ElLoading } from 'element-plus';
+import type { UnlistenFn } from '@tauri-apps/api/event';
 import { useI18n } from 'vue-i18n';
 import Sidebar from './components/Sidebar.vue';
 import Dashboard from './views/Dashboard.vue';
@@ -12,12 +13,50 @@ import { loadData, saveData } from './utils/persistence';
 import { useProjectStore } from './stores/project';
 import { useSettingsStore } from './stores/settings';
 import { useNodeStore } from './stores/node';
+import type { Project } from './types';
 
 const target = import.meta.env.VITE_TARGET;
 
 const { t } = useI18n();
 const currentView = ref<'dashboard' | 'settings' | 'nodes'>('dashboard');
 const loaded = ref(false);
+const isDragging = ref(false);
+let unlistenDragEnter: UnlistenFn | null = null;
+let unlistenDragLeave: UnlistenFn | null = null;
+let unlistenDragDrop: UnlistenFn | null = null;
+
+async function handleImportProject(path: string) {
+  const store = useProjectStore();
+  if (store.projects.some(p => p.path === path)) {
+    ElMessage.warning(t('project.alreadyExists') || 'Project already exists');
+    return;
+  }
+
+  const loading = ElLoading.service({
+    lock: true,
+    text: 'Scanning...',
+    background: 'rgba(0, 0, 0, 0.7)',
+  });
+
+  try {
+    const info = await api.scanProject(path);
+    const project: Project = {
+      id: crypto.randomUUID(),
+      name: info.name || path.split(/[\\/]/).pop() || 'Untitled',
+      path: path,
+      type: 'node',
+      nodeVersion: '',
+      packageManager: 'npm',
+      scripts: info.scripts
+    };
+    store.addProject(project);
+    ElMessage.success(t('dashboard.addProject') + ' Success');
+  } catch (e) {
+    ElMessage.error('Failed to import: ' + e);
+  } finally {
+    loading.close();
+  }
+}
 
 function compareVersions(v1: string, v2: string) {
   const p1 = v1.split('.').map(Number);
@@ -96,10 +135,105 @@ onMounted(async () => {
   // Auto refresh projects
   useProjectStore().refreshAll();
   
+  // Handle Startup Args / uTools Plugin Enter
+  if (target === 'utools') {
+    if ((window as any).utools) {
+      (window as any).utools.onPluginEnter(({ code, type, payload }: any) => {
+        if (code === 'import_project' && type === 'files' && payload.length > 0) {
+          handleImportProject(payload[0].path);
+        }
+      });
+    }
+
+    // Web/uTools Drag and Drop
+    let dragCounter = 0;
+    
+    document.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragCounter++;
+      if (e.dataTransfer && e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+        isDragging.value = true;
+      }
+    });
+
+    document.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    document.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dragCounter--;
+      if (dragCounter === 0) {
+        isDragging.value = false;
+      }
+    });
+
+    document.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      isDragging.value = false;
+      dragCounter = 0;
+      
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+           const file = files[i] as any;
+           // In Electron/uTools, File object has a 'path' property
+           if (file.path) {
+             await handleImportProject(file.path);
+           }
+        }
+      }
+    });
+  } else {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const args = await invoke<string[]>('get_startup_args');
+      if (args && args.length > 1) {
+        const potentialPath = args[1];
+        if (!potentialPath.startsWith('-')) {
+          handleImportProject(potentialPath);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to get startup args:', e);
+    }
+
+    // Setup Drag and Drop Listeners
+    try {
+      const { listen } = await import('@tauri-apps/api/event');
+      
+      unlistenDragEnter = await listen('tauri://drag-enter', () => {
+        isDragging.value = true;
+      });
+      
+      unlistenDragLeave = await listen('tauri://drag-leave', () => {
+        isDragging.value = false;
+      });
+      
+      unlistenDragDrop = await listen<{ paths: string[] }>('tauri://drag-drop', (event) => {
+        isDragging.value = false;
+        if (event.payload.paths && event.payload.paths.length > 0) {
+           for (const path of event.payload.paths) {
+             handleImportProject(path);
+           }
+        }
+      });
+    } catch (e) {
+      console.error('Failed to setup drag listeners', e);
+    }
+  }
+
   // Default to true if undefined (legacy support)
   if (target !== 'utools' && useSettingsStore().settings.autoUpdate !== false) {
     checkUpdate();
   }
+});
+
+onUnmounted(() => {
+  if (unlistenDragEnter) unlistenDragEnter();
+  if (unlistenDragLeave) unlistenDragLeave();
+  if (unlistenDragDrop) unlistenDragDrop();
 });
 
 // Watch stores and save
@@ -142,6 +276,16 @@ watch(() => nodeStore.versions, triggerSave, { deep: true });
           <Dashboard v-if="currentView === 'dashboard'" />
           <Settings v-if="currentView === 'settings'" />
           <NodeManager v-if="currentView === 'nodes'" />
+        </div>
+        
+        <!-- Drag Overlay -->
+        <div v-if="isDragging" class="absolute inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center border-4 border-blue-500 border-dashed m-4 rounded-xl transition-all duration-300">
+          <div class="text-center text-white">
+             <div class="text-6xl mb-4 text-blue-400 flex justify-center">
+               <div class="i-mdi-folder-upload" />
+             </div>
+             <h2 class="text-2xl font-bold">{{ t('dashboard.dropToImport') || 'Drop folder to import' }}</h2>
+          </div>
         </div>
       </main>
     </div>
