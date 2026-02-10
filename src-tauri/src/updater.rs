@@ -1,13 +1,36 @@
 use std::fs::File;
 use std::process::Command;
 use std::env;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, State};
 use std::io::{Read, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
+pub struct UpdateState {
+    pub is_cancelling: Arc<AtomicBool>,
+}
+
+impl UpdateState {
+    pub fn new() -> Self {
+        Self {
+            is_cancelling: Arc::new(AtomicBool::new(false)),
+        }
+    }
+}
 
 #[tauri::command]
-pub async fn install_update(app: AppHandle, url: String) -> Result<(), String> {
+pub fn cancel_update(state: State<UpdateState>) {
+    state.is_cancelling.store(true, Ordering::SeqCst);
+}
+
+#[tauri::command]
+pub async fn install_update(app: AppHandle, state: State<'_, UpdateState>, url: String) -> Result<(), String> {
     println!("Starting update download from: {}", url);
     
+    // Reset cancellation state
+    state.is_cancelling.store(false, Ordering::SeqCst);
+    let is_cancelling = state.is_cancelling.clone();
+
     // Use blocking task to avoid blocking the async runtime with file I/O and synchronous download
     // But since we added blocking feature to reqwest, we can use it inside spawn_blocking
     
@@ -29,6 +52,10 @@ pub async fn install_update(app: AppHandle, url: String) -> Result<(), String> {
         let mut last_percentage: u64 = 0;
 
         loop {
+            if is_cancelling.load(Ordering::SeqCst) {
+                 return Err("Update cancelled by user".to_string());
+            }
+
             let bytes_read = response.read(&mut buffer).map_err(|e| e.to_string())?;
             if bytes_read == 0 {
                 break;

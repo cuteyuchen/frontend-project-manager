@@ -35,6 +35,7 @@ export interface PlatformAPI {
 
     // Updater
     installUpdate(url: string): Promise<void>;
+    cancelUpdate(): Promise<void>;
     getAppVersion(): Promise<string>;
 
     // Dialogs

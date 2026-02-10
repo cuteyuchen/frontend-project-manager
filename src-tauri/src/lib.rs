@@ -39,6 +39,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(runner::ProcessState::new())
+        .manage(updater::UpdateState::new())
         .invoke_handler(tauri::generate_handler![
             nvm::get_nvm_list,
             nvm::get_node_version,
@@ -53,6 +54,7 @@ pub fn run() {
             runner::open_folder,
             runner::open_url,
             updater::install_update,
+            updater::cancel_update,
             read_config_file,
             write_config_file,
             get_startup_args

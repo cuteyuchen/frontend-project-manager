@@ -43,6 +43,7 @@ export class UToolsAdapter implements PlatformAPI {
   writeTextFile(path: string, content: string): Promise<void> { return this.service.writeTextFile(path, content); }
 
   installUpdate(url: string): Promise<void> { return this.service.installUpdate(url); }
+  cancelUpdate(): Promise<void> { return this.service.cancelUpdate ? this.service.cancelUpdate() : Promise.resolve(); }
   getAppVersion(): Promise<string> { return this.service.getAppVersion(); }
 
   openDialog(options: any): Promise<string | string[] | null> { return this.service.openDialog(options); }

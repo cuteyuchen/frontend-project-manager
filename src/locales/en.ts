@@ -102,11 +102,13 @@ export default {
     editProject: 'Edit Project'
   },
   update: {
-    title: 'Update Available',
-    message: 'New version available: {version}. Do you want to download and install?',
+    title: 'New Version Found',
+    message: 'New version found: {version}. Do you want to download and install now?',
     confirm: 'Update Now',
     cancel: 'Later',
-    downloading: 'Downloading update... The app will close and installer will run automatically.',
+    downloading: 'Downloading update...',
+    background: 'Background',
+    cancelled: 'Update cancelled',
     error: 'Update failed: {error}'
   }
 }

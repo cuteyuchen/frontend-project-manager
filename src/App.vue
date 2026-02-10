@@ -9,6 +9,7 @@ import Dashboard from './views/Dashboard.vue';
 import Settings from './views/Settings.vue';
 import NodeManager from './views/NodeManager.vue';
 import TitleBar from './components/TitleBar.vue';
+import UpdateProgress from './components/UpdateProgress.vue';
 import { loadData, saveData } from './utils/persistence';
 import { useProjectStore } from './stores/project';
 import { useSettingsStore } from './stores/settings';
@@ -24,6 +25,10 @@ const isDragging = ref(false);
 let unlistenDragEnter: UnlistenFn | null = null;
 let unlistenDragLeave: UnlistenFn | null = null;
 let unlistenDragDrop: UnlistenFn | null = null;
+
+const showUpdateProgress = ref(false);
+const downloadProgress = ref(0);
+
 
 async function handleImportProject(path: string) {
   const store = useProjectStore();
@@ -100,32 +105,45 @@ async function checkUpdate() {
           type: 'info',
         }
       ).then(async () => {
-        const loading = ElLoading.service({
-          lock: true,
-          text: `${t('update.downloading')} 0%`,
-          background: 'rgba(0, 0, 0, 0.7)',
-        });
+        showUpdateProgress.value = true;
+        downloadProgress.value = 0;
 
         let unlisten: (() => void) | undefined;
 
         try {
           unlisten = await api.onDownloadProgress((percentage) => {
-             loading.setText(`${t('update.downloading')} ${percentage}%`);
+             downloadProgress.value = percentage;
           });
 
           const downloadUrl = `https://github.com/cuteyuchen/frontend-project-manager/releases/download/${latestTag}/Frontend.Project.Manager_${latestTag.replace(/^v/, '')}_x64-setup.exe`;
           await api.installUpdate(downloadUrl);
-        } catch (error) {
-          ElMessage.error(t('update.error', { error }));
+        } catch (error: any) {
+          if (error && error.toString().includes('cancelled')) {
+             ElMessage.info(t('update.cancelled') || 'Update cancelled');
+          } else {
+             ElMessage.error(t('update.error', { error }));
+          }
+          showUpdateProgress.value = false;
         } finally {
           if (unlisten) unlisten();
-          loading.close();
+          // Don't hide progress immediately on success, let the app restart
+          // But if it failed/cancelled, we hide it (handled in catch or here)
+          // If successful, the app will close.
         }
       }).catch(() => { });
     }
   } catch (e) {
     console.error('Failed to check for updates:', e);
   }
+}
+
+function handleCancelUpdate() {
+  api.cancelUpdate();
+  showUpdateProgress.value = false;
+}
+
+function handleBackgroundUpdate() {
+  showUpdateProgress.value = false;
 }
 
 onMounted(async () => {
@@ -289,6 +307,13 @@ watch(() => nodeStore.versions, triggerSave, { deep: true });
         </div>
       </main>
     </div>
+
+    <UpdateProgress 
+      v-if="showUpdateProgress" 
+      :percentage="downloadProgress"
+      @cancel="handleCancelUpdate"
+      @background="handleBackgroundUpdate"
+    />
   </div>
 </template>
 

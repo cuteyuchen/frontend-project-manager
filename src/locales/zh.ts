@@ -106,7 +106,9 @@ export default {
     message: '发现新版本：{version}。是否立即下载并安装？',
     confirm: '立即更新',
     cancel: '稍后',
-    downloading: '正在下载更新... 下载完成后应用将自动关闭并运行安装程序。',
+    downloading: '正在下载更新...',
+    background: '后台下载',
+    cancelled: '更新已取消',
     error: '更新失败：{error}'
   }
 }

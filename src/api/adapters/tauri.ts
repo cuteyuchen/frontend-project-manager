@@ -95,6 +95,10 @@ export class TauriAdapter implements PlatformAPI {
         return invoke('install_update', { url });
     }
     
+    async cancelUpdate(): Promise<void> {
+        return invoke('cancel_update');
+    }
+    
     async getAppVersion(): Promise<string> {
         return getVersion();
     }
