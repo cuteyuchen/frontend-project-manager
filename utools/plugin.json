@@ -1,6 +1,6 @@
 {
     "pluginName": "Frontend Project Manager",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "description": "Project Manager for frontend developers",
     "author": "Your Name",
     "homepage": "https://github.com/your/repo",
@@ -11,7 +11,10 @@
         {
             "code": "main",
             "explain": "Frontend Project Manager",
-            "cmds": ["Frontend Project Manager", "fpm"],
+            "cmds": [
+                "Frontend Project Manager",
+                "fpm"
+            ],
             "windowType": "system"
         }
     ]
