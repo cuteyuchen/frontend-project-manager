@@ -112,7 +112,7 @@ async function importData() {
 }
 
 function openReleases() {
-    api.openUrl('https://github.com/cuteyuchen/frontend-project-manager/releases');
+    api.openUrl('https://github.com/cuteyuchen/fp-node-manager/releases');
 }
 </script>
 
@@ -205,7 +205,7 @@ function openReleases() {
                 <div class="mt-4">
                     <div class="text-sm font-medium mb-2">{{ t('settings.releases') }}</div>
                     <el-button link type="primary" @click="openReleases">
-                        https://github.com/cuteyuchen/frontend-project-manager/releases
+                        https://github.com/cuteyuchen/fp-node-manager/releases
                         <el-icon class="ml-1"><div class="i-mdi-open-in-new" /></el-icon>
                     </el-button>
                 </div>

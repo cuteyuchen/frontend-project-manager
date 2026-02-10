@@ -1,6 +1,6 @@
 export default {
   common: {
-    title: '前端项目管理工具',
+    title: '前端项目 & Node 管理器',
     add: '添加',
     refresh: '刷新',
     cancel: '取消',
@@ -67,7 +67,7 @@ export default {
     defaultTerminal: '默认终端',
     terminalHint: '脚本执行时的包装器。',
     contextMenu: '添加到右键菜单',
-    contextMenuHint: '在文件夹右键菜单中添加“Open in Project Manager”选项',
+    contextMenuHint: '在文件夹右键菜单中添加“在前端项目 & Node 管理器中打开”选项',
     appearance: '外观设置',
     language: '语言',
     theme: '主题模式',

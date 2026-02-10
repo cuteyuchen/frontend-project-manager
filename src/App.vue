@@ -77,7 +77,7 @@ function compareVersions(v1: string, v2: string) {
 
 async function checkUpdate() {
   try {
-    const response = await fetch('https://api.github.com/repos/cuteyuchen/frontend-project-manager/releases/latest');
+    const response = await fetch('https://api.github.com/repos/cuteyuchen/fp-node-manager/releases/latest');
     if (!response.ok) return;
     const data = await response.json();
     const latestTag = data.tag_name; // e.g., "v0.1.1"
@@ -93,7 +93,7 @@ async function checkUpdate() {
               class: 'text-blue-500 hover:text-blue-600 cursor-pointer underline',
               onClick: (e: Event) => {
                 e.preventDefault();
-                api.openUrl('https://github.com/cuteyuchen/frontend-project-manager/releases');
+                api.openUrl('https://github.com/cuteyuchen/fp-node-manager/releases');
               }
             }, 'Open Download Page')
           ])

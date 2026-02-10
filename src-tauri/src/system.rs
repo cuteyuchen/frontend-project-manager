@@ -31,7 +31,7 @@ pub fn set_context_menu(enable: bool) -> Result<(), String> {
     for key_path in keys {
         if enable {
             let (key, _) = hkcu.create_subkey(key_path).map_err(|e| e.to_string())?;
-            key.set_value("", &"Open in Project Manager").map_err(|e| e.to_string())?;
+            key.set_value("", &"Open in Project & Node Manager").map_err(|e| e.to_string())?;
             key.set_value("Icon", &exe_str).map_err(|e| e.to_string())?;
             let (cmd_key, _) = key.create_subkey("command").map_err(|e| e.to_string())?;
             let cmd_str = format!("\"{}\" \"%V\"", exe_str);
@@ -70,7 +70,7 @@ pub fn set_context_menu(enable: bool) -> Result<(), String> {
         // MimeType=inode/directory registers it for folders
         let content = format!(r#"[Desktop Entry]
 Type=Application
-Name=Open in Project Manager
+Name=Open in Project & Node Manager
 Exec="{}" "%f"
 Icon=folder-open
 NoDisplay=true

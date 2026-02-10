@@ -1,6 +1,6 @@
 export default {
   common: {
-    title: 'Frontend Project Manager',
+    title: 'Frontend Project & Node Manager',
     add: 'Add',
     refresh: 'Refresh',
     cancel: 'Cancel',
@@ -67,7 +67,7 @@ export default {
     defaultTerminal: 'Default Terminal',
     terminalHint: 'Wrapper for script execution.',
     contextMenu: 'Add to Context Menu',
-    contextMenuHint: 'Add "Open in Project Manager" to directory context menu',
+    contextMenuHint: 'Add "Open in Frontend Project & Node Manager" to directory context menu',
     appearance: 'Appearance Settings',
     language: 'Language',
     theme: 'Theme Mode',

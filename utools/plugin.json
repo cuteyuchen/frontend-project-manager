@@ -1,18 +1,20 @@
 {
-    "pluginName": "Frontend Project Manager",
+    "pluginName": "前端项目 & Node 管理器",
     "version": "0.1.9",
     "description": "Project Manager for frontend developers",
     "author": "Your Name",
-    "homepage": "https://github.com/your/repo",
+    "homepage": "https://github.com/cuteyuchen/fp-node-manager",
     "main": "index.html",
     "preload": "preload.js",
     "logo": "logo.png",
     "features": [
         {
             "code": "main",
-            "explain": "Frontend Project Manager",
+            "explain": "前端项目 & Node 管理器",
             "cmds": [
-                "Frontend Project Manager",
+                "前端项目 & Node 管理器",
+                "Frontend Project & Node Manager",
+                "fp-node-manager",
                 "fpm"
             ],
             "windowType": "system"

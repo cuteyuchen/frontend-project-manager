@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Frontend Project Manager",
+  "productName": "Frontend Project & Node Manager",
   "version": "0.1.9",
   "identifier": "com.tauri-app.frontend-manager",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Frontend Project Manager",
+        "title": "Frontend Project & Node Manager",
         "width": 800,
         "height": 600,
         "minWidth": 800,
