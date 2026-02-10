@@ -94,7 +94,7 @@ export class UToolsAdapter implements PlatformAPI {
   }
 
   // System Integration
-  async setContextMenu(enable: boolean): Promise<void> {
+  async setContextMenu(): Promise<void> {
       // Not supported in uTools
       return Promise.resolve();
   }
