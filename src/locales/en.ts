@@ -66,6 +66,8 @@ export default {
     editorPathHint: 'Default "code" works if VSCode is in PATH. Otherwise select Code.exe path.',
     defaultTerminal: 'Default Terminal',
     terminalHint: 'Wrapper for script execution.',
+    contextMenu: 'Add to Context Menu',
+    contextMenuHint: 'Add "Open in Project Manager" to directory context menu',
     appearance: 'Appearance Settings',
     language: 'Language',
     theme: 'Theme Mode',

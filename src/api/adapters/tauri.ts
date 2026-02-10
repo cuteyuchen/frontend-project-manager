@@ -159,4 +159,17 @@ export class TauriAdapter implements PlatformAPI {
     async onWindowResize(callback: () => void): Promise<() => void> {
         return this.appWindow.listen('tauri://resize', callback);
     }
+
+    // System Integration
+    async setContextMenu(enable: boolean): Promise<void> {
+        return invoke('set_context_menu', { enable });
+    }
+
+    async checkContextMenu(): Promise<boolean> {
+        return invoke('check_context_menu');
+    }
+
+    async isContextMenuSupported(): Promise<boolean> {
+        return invoke('is_context_menu_supported');
+    }
 }

@@ -64,4 +64,9 @@ export interface PlatformAPI {
     windowIsMaximized(): Promise<boolean>;
     windowSetAlwaysOnTop(always: boolean): Promise<void>;
     onWindowResize(callback: () => void): Promise<() => void>;
+
+    // System Integration
+    setContextMenu(enable: boolean): Promise<void>;
+    checkContextMenu(): Promise<boolean>;
+    isContextMenuSupported(): Promise<boolean>;
 }

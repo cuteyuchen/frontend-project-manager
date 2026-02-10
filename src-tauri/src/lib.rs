@@ -2,6 +2,7 @@ mod nvm;
 mod project;
 mod runner;
 mod updater;
+mod system;
 
 use tauri::Manager;
 
@@ -55,6 +56,9 @@ pub fn run() {
             runner::open_url,
             updater::install_update,
             updater::cancel_update,
+            system::set_context_menu,
+            system::check_context_menu,
+            system::is_context_menu_supported,
             read_config_file,
             write_config_file,
             get_startup_args

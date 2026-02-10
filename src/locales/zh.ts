@@ -66,6 +66,8 @@ export default {
     editorPathHint: '默认 "code" 适用于已配置环境变量的 VSCode。如未生效，请选择 Code.exe 的完整路径。',
     defaultTerminal: '默认终端',
     terminalHint: '脚本执行时的包装器。',
+    contextMenu: '添加到右键菜单',
+    contextMenuHint: '在文件夹右键菜单中添加“Open in Project Manager”选项',
     appearance: '外观设置',
     language: '语言',
     theme: '主题模式',

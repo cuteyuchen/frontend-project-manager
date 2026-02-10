@@ -92,4 +92,18 @@ export class UToolsAdapter implements PlatformAPI {
       console.log('onWindowResize registered', callback);
       return Promise.resolve(() => {});
   }
+
+  // System Integration
+  async setContextMenu(enable: boolean): Promise<void> {
+      // Not supported in uTools
+      return Promise.resolve();
+  }
+
+  async checkContextMenu(): Promise<boolean> {
+      return false;
+  }
+
+  async isContextMenuSupported(): Promise<boolean> {
+      return false;
+  }
 }

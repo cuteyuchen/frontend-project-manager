@@ -13,10 +13,28 @@ const projectStore = useProjectStore();
 const nodeStore = useNodeStore();
 const appVersion = ref('');
 const target = import.meta.env.VITE_TARGET;
+const contextMenuEnabled = ref(false);
+const contextMenuSupported = ref(false);
 
 onMounted(async () => {
     appVersion.value = await api.getAppVersion();
+    if (target !== 'utools') {
+        contextMenuSupported.value = await api.isContextMenuSupported();
+        if (contextMenuSupported.value) {
+            contextMenuEnabled.value = await api.checkContextMenu();
+        }
+    }
 });
+
+async function toggleContextMenu(val: boolean) {
+    try {
+        await api.setContextMenu(val);
+        ElMessage.success(val ? t('common.success') : t('common.success'));
+    } catch (e) {
+        ElMessage.error(t('common.error') + ': ' + e);
+        contextMenuEnabled.value = !val; // revert
+    }
+}
 
 async function selectEditor() {
     try {
@@ -134,6 +152,13 @@ function openReleases() {
                     </el-select>
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         {{ t('settings.terminalHint') }}
+                    </div>
+                </el-form-item>
+
+                <el-form-item :label="t('settings.contextMenu')" v-if="target !== 'utools' && contextMenuSupported">
+                    <el-switch v-model="contextMenuEnabled" @change="toggleContextMenu" />
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {{ t('settings.contextMenuHint') }}
                     </div>
                 </el-form-item>
             </el-form>
