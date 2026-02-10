@@ -97,7 +97,7 @@ onMounted(async () => {
   useProjectStore().refreshAll();
   
   // Default to true if undefined (legacy support)
-  if (useSettingsStore().settings.autoUpdate !== false) {
+  if (target !== 'utools' && useSettingsStore().settings.autoUpdate !== false) {
     checkUpdate();
   }
 });

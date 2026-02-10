@@ -50,7 +50,33 @@ try {
         console.warn('⚠️ Could not find version field in Cargo.toml');
     }
 
-    // 4. Git operations
+    // 4. utools/plugin.json
+    const utoolsPluginPath = path.join(rootDir, 'utools', 'plugin.json');
+    if (fs.existsSync(utoolsPluginPath)) {
+        const utoolsPluginContent = fs.readFileSync(utoolsPluginPath, 'utf8');
+        const utoolsPlugin = JSON.parse(utoolsPluginContent);
+        utoolsPlugin.version = newVersion;
+        fs.writeFileSync(utoolsPluginPath, JSON.stringify(utoolsPlugin, null, 4) + '\n');
+        console.log(`✅ Updated utools/plugin.json to ${newVersion}`);
+    } else {
+        console.warn('⚠️ Could not find utools/plugin.json');
+    }
+
+    // 5. utools/preload.js
+    const preloadPath = path.join(rootDir, 'utools', 'preload.js');
+    if (fs.existsSync(preloadPath)) {
+        let preloadContent = fs.readFileSync(preloadPath, 'utf8');
+        const versionRegex = /(getAppVersion:\s*async\s*\(\)\s*=>\s*\{\s*return\s*")([^"]+)(")/;
+        if (versionRegex.test(preloadContent)) {
+            preloadContent = preloadContent.replace(versionRegex, `$1${newVersion}$3`);
+            fs.writeFileSync(preloadPath, preloadContent);
+            console.log(`✅ Updated utools/preload.js to ${newVersion}`);
+        } else {
+             console.warn('⚠️ Could not find getAppVersion pattern in utools/preload.js');
+        }
+    }
+
+    // 6. Git operations
     console.log('\n📦 Executing Git operations...');
 
     // git add
