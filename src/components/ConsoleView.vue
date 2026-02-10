@@ -2,9 +2,30 @@
 import { computed, ref, watch, nextTick } from 'vue';
 import { useProjectStore } from '../stores/project';
 import { useI18n } from 'vue-i18n';
+import { AnsiUp } from 'ansi_up';
+import { api } from '../api';
 
 const { t } = useI18n();
 const projectStore = useProjectStore();
+const ansiUp = new AnsiUp();
+
+function parseAnsi(text: string) {
+    const html = ansiUp.ansi_to_html(text);
+    // Match URLs but avoid matching HTML tags or attributes
+    const urlRegex = /(https?:\/\/[^\s<"']+)/g;
+    return html.replace(urlRegex, '<span class="log-link text-blue-400 hover:underline cursor-pointer" data-url="$1" title="Ctrl + Click to open">$1</span>');
+}
+
+function handleLogClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (target.classList.contains('log-link')) {
+        const url = target.dataset.url;
+        if (url && (event.ctrlKey || event.metaKey)) {
+             api.openUrl(url);
+        }
+    }
+}
+
 const activeProject = computed(() =>
     projectStore.projects.find(p => p.id === projectStore.activeProjectId)
 );
@@ -28,8 +49,9 @@ watch(() => projectStore.runningStatus, (newStatus) => {
     if (!activeProject.value) return;
 
     Object.entries(newStatus).forEach(([key, running]) => {
-        if (running && key.startsWith(`${activeProject.value?.id}:`)) {
-            const script = key.split(':')[1];
+        const prefix = `${activeProject.value?.id}:`;
+        if (running && key.startsWith(prefix)) {
+            const script = key.substring(prefix.length);
             if (!openTabs.value.has(script)) {
                 openTabs.value.add(script);
                 // If no active script, or if we want to auto-switch to newly started command?
@@ -118,6 +140,18 @@ function handleStop() {
     }
 }
 
+async function handleRestart() {
+    if (activeProject.value && activeScript.value) {
+        await projectStore.stopProject(activeProject.value, activeScript.value);
+        // Wait a bit to ensure process is fully killed and ports released
+        setTimeout(() => {
+            if (activeProject.value && activeScript.value) {
+                projectStore.runProject(activeProject.value, activeScript.value);
+            }
+        }, 1000);
+    }
+}
+
 function handleClear() {
     if (activeProject.value && activeScript.value) {
         projectStore.clearLog(`${activeProject.value.id}:${activeScript.value}`);
@@ -144,7 +178,7 @@ function handleCloseTab(script: string) {
 </script>
 
 <template>
-    <div class="h-full flex flex-col bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-300 relative overflow-hidden transition-colors duration-300">
+    <div class="absolute inset-0 flex flex-col bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-300 overflow-hidden transition-colors duration-300">
         <!-- Header -->
         <div v-if="activeProject"
             class="flex flex-col border-b border-slate-200 dark:border-slate-700/50 bg-white/50 dark:bg-[#1e293b]/50 backdrop-blur-sm z-10">
@@ -191,6 +225,10 @@ function handleCloseTab(script: string) {
                     title="Clear Logs">
                     <div class="i-mdi-delete-sweep text-base" />
                 </button>
+                <button v-if="isRunning" @click="handleRestart"
+                    class="px-2 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded text-xs flex items-center gap-1 transition-all cursor-pointer">
+                    <div class="i-mdi-restart text-xs" /> {{ t('dashboard.restart') }}
+                </button>
                 <button v-if="isRunning" @click="handleStop"
                     class="px-2 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded text-xs flex items-center gap-1 transition-all cursor-pointer">
                     <div class="i-mdi-stop text-xs" /> {{ t('dashboard.stop') }}
@@ -203,16 +241,17 @@ function handleCloseTab(script: string) {
         </div>
 
         <!-- Logs -->
-        <div v-if="activeScript" ref="logContainer"
-            class="flex-1 overflow-y-auto p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap select-text relative">
+        <div v-if="activeScript" ref="logContainer" @click="handleLogClick"
+            class="flex-1 overflow-y-auto font-mono text-sm leading-relaxed whitespace-pre-wrap select-text relative min-h-0">
             <!-- Use a key to force re-render when switching scripts to avoid scroll artifacts -->
-            <div :key="activeScript">
+            <div :key="activeScript" class="p-4">
                 <!-- Using index as key is fine for append-only logs, but for performance with huge lists, 
                      we might want to render just visible ones or use a virtual scroller. 
                      For now, let's just ensure we don't re-render everything unnecessarily. -->
                 <div v-for="(line, i) in logs" :key="i"
-                    class="break-all border-l-2 border-transparent hover:border-slate-300 dark:hover:border-slate-700 pl-2 -ml-2 hover:bg-slate-200/50 dark:hover:bg-slate-800/30 transition-colors py-0.5">
-                    {{ line }}</div>
+                    class="break-all border-l-2 border-transparent hover:border-slate-300 dark:hover:border-slate-700 pl-2 -ml-2 hover:bg-slate-200/50 dark:hover:bg-slate-800/30 transition-colors py-0.5"
+                    v-html="parseAnsi(line)">
+                </div>
             </div>
 
             <div v-if="logs.length === 0"
@@ -223,7 +262,7 @@ function handleCloseTab(script: string) {
         </div>
 
         <!-- Empty State -->
-        <div v-else class="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+        <div v-else class="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
             <div class="w-24 h-24 rounded-full bg-slate-200/50 dark:bg-slate-800/50 flex items-center justify-center mb-6 shadow-inner">
                 <div class="i-mdi-monitor-dashboard text-5xl opacity-30" />
             </div>
@@ -232,3 +271,32 @@ function handleCloseTab(script: string) {
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Custom Scrollbar for Webkit (Chrome, Safari, Edge) */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* slate-300 */
+  border-radius: 4px;
+}
+
+.dark .overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #475569; /* slate-600 */
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* slate-400 */
+}
+
+.dark .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #64748b; /* slate-500 */
+}
+</style>

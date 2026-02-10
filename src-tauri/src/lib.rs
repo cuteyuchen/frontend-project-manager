@@ -3,6 +3,8 @@ mod project;
 mod runner;
 mod updater;
 
+use tauri::Manager;
+
 #[tauri::command]
 fn read_config_file(filename: String) -> Result<String, String> {
     let mut path = std::env::current_exe().map_err(|e| e.to_string())?;
@@ -27,7 +29,7 @@ fn write_config_file(filename: String, content: String) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut app = tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -49,6 +51,13 @@ pub fn run() {
             read_config_file,
             write_config_file
         ])
-        .run(tauri::generate_context!())
+        .build(tauri::generate_context!())
         .expect("error while running tauri application");
+
+    app.run(|app_handle, event| {
+        if let tauri::RunEvent::ExitRequested { .. } = event {
+             let state = app_handle.state::<runner::ProcessState>();
+             runner::cleanup_processes(&state);
+        }
+    });
 }

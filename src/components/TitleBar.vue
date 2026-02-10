@@ -78,7 +78,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="h-8 bg-white dark:bg-[#0f172a] flex items-center select-none fixed top-0 left-0 right-0 z-50 transition-colors duration-300 border-b border-gray-200 dark:border-none">
+  <div class="h-8 bg-white dark:bg-[#0f172a] flex items-center select-none z-50 transition-colors duration-300 border-b border-gray-200 dark:border-none shrink-0">
     <!-- Expanded drag region -->
     <div data-tauri-drag-region class="flex-1 h-full flex items-center pl-4 cursor-default">
       <span class="text-xs text-gray-600 dark:text-gray-400 pointer-events-none font-medium">{{ t('common.title') }}</span>

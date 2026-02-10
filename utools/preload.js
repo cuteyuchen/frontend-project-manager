@@ -20,7 +20,11 @@ let exitCallback = null;
 utools.onPluginOut(() => {
     for (const [id, child] of processes) {
         try {
-            child.kill();
+            if (process.platform === 'win32') {
+                exec(`taskkill /pid ${child.pid} /T /F`);
+            } else {
+                child.kill();
+            }
         } catch (e) {}
     }
     processes.clear();
@@ -252,83 +256,191 @@ window.services = {
     runProjectCommand: async (id, projectPath, script, packageManager, nodePath) => {
         if (processes.has(id)) throw new Error('Already running');
 
-        // Construct command to run in shell
-        // We need to set PATH to include the selected node version
-        // And then run the package manager command
-        let cmdStr = '';
-        
-        // Handle Windows environment variables for the session
-        if (process.platform === 'win32') {
-            // If nodePath is provided, prepend it to PATH
-            if (nodePath) {
-                // Ensure we have the directory path, not the executable path
-                let nodeDir = nodePath;
-                try {
-                    // If it's a file (e.g. node.exe), get its directory
-                    if (fs.statSync(nodePath).isFile()) {
-                        nodeDir = path.dirname(nodePath);
-                    }
-                } catch (e) {
-                    // If check fails, assume it is a directory (standard NVM behavior)
-                }
-                
-                cmdStr += `set "PATH=${nodeDir};%PATH%" && `;
-            }
+        // Setup logging
+        let logFilePath = null;
+        let logStream = null;
+        const MAX_LOG_LINES = 500;
+        const logBuffer = [];
+        let linesSinceRewrite = 0;
+
+        function appendLog(text) {
+            if (!text) return;
             
-            // Append the actual command
-            cmdStr += `${packageManager} run ${script}`;
-        } else {
-            // Unix/Linux/macOS
-            if (nodePath) {
-                 let nodeDir = nodePath;
-                 try {
-                     // On Unix, nodePath is usually .../bin/node
-                     // We need the bin directory
-                     if (fs.statSync(nodePath).isFile()) {
-                         nodeDir = path.dirname(nodePath);
-                     } else {
-                         // If it's a directory (e.g. version root), append /bin
-                         // Check if bin exists
-                         if (fs.existsSync(path.join(nodePath, 'bin'))) {
-                             nodeDir = path.join(nodePath, 'bin');
-                         }
-                     }
-                 } catch (e) {}
-                 
-                 cmdStr += `export PATH="${nodeDir}:$PATH" && `;
+            // Update buffer
+            logBuffer.push(text);
+            if (logBuffer.length > MAX_LOG_LINES) {
+                logBuffer.shift();
             }
-            cmdStr += `${packageManager} run ${script}`;
+
+            // Write to file (append)
+            if (logStream) {
+                logStream.write(text);
+                linesSinceRewrite++;
+
+                // Periodic rewrite to keep file size small
+                if (linesSinceRewrite >= MAX_LOG_LINES) {
+                    rewriteLogFile();
+                }
+            }
         }
 
-        console.log('[Runner] Executing:', cmdStr);
+        function rewriteLogFile() {
+            if (!logFilePath) return;
+            try {
+                if (logStream) {
+                    logStream.end();
+                }
+                fs.writeFileSync(logFilePath, logBuffer.join(''), 'utf-8');
+                logStream = fs.createWriteStream(logFilePath, { flags: 'a' });
+                linesSinceRewrite = 0;
+            } catch (e) {
+                console.error('[Runner] Failed to rewrite log file:', e);
+            }
+        }
 
-        const child = spawn(cmdStr, [], {
-            cwd: projectPath,
-            shell: true,
-            env: process.env // Inherit system env
-        });
-        
-        processes.set(id, child);
-        
-        child.stdout.on('data', (data) => {
-            if (outputCallback) outputCallback({ id, data: data.toString() });
-        });
-        
-        child.stderr.on('data', (data) => {
-            if (outputCallback) outputCallback({ id, data: data.toString() });
-        });
-        
-        child.on('exit', () => {
-            processes.delete(id);
-            if (exitCallback) exitCallback({ id });
-        });
+        try {
+            const userData = utools.getPath('userData');
+            const baseLogDir = path.join(userData, 'logs');
+            
+            // Determine Project Name
+            let projectName = path.basename(projectPath);
+            try {
+                const pkgPath = path.join(projectPath, 'package.json');
+                if (fs.existsSync(pkgPath)) {
+                    const content = fs.readFileSync(pkgPath, 'utf-8');
+                    const pkg = JSON.parse(content);
+                    if (pkg.name) {
+                        projectName = pkg.name;
+                    }
+                }
+            } catch (e) {
+                // Ignore error, keep folder name
+            }
+
+            // Sanitize Project Name
+            const safeProjectName = projectName.replace(/[<>:"/\\|?*]/g, '_');
+            const projectLogDir = path.join(baseLogDir, safeProjectName);
+
+            if (!fs.existsSync(projectLogDir)) {
+                fs.mkdirSync(projectLogDir, { recursive: true });
+            }
+            
+            // Sanitize script name
+            const safeScript = script.replace(/[<>:"/\\|?*]/g, '_');
+            logFilePath = path.join(projectLogDir, `${safeScript}.log`);
+            
+            // Open with 'w' to overwrite existing file (clearing previous run logs)
+            logStream = fs.createWriteStream(logFilePath, { flags: 'w' });
+        } catch (e) {
+            console.error('[Runner] Failed to setup log file:', e);
+        }
+
+        // Prepare environment with modified PATH
+        const env = { ...process.env };
+        let nodeDir = '';
+
+        // Handle Node version PATH modification
+        if (nodePath) {
+            try {
+                // If it's a file (e.g. node.exe), get its directory
+                // We use statSync to check, but be careful if path doesn't exist
+                if (fs.existsSync(nodePath) && fs.statSync(nodePath).isFile()) {
+                    nodeDir = path.dirname(nodePath);
+                } else {
+                    nodeDir = nodePath;
+                }
+
+                if (nodeDir) {
+                    if (process.platform === 'win32') {
+                        // Find existing PATH key (case insensitive on Windows)
+                        let pathKey = 'PATH';
+                        for (const key in env) {
+                            if (key.toUpperCase() === 'PATH') {
+                                pathKey = key;
+                                break;
+                            }
+                        }
+                        env[pathKey] = `${nodeDir};${env[pathKey] || ''}`;
+                    } else {
+                        env.PATH = `${nodeDir}:${env.PATH || ''}`;
+                    }
+                }
+            } catch (e) {
+                console.error('[Runner] Error resolving node path:', e);
+            }
+        }
+
+        // Construct command
+        // On Windows, if we use shell: true, we can pass the command string directly.
+        // We avoid "set PATH=... && cmd" pattern to prevent syntax errors.
+        const cmdStr = `${packageManager} run "${script}"`;
+
+        console.log('[Runner] Executing:', cmdStr);
+        console.log('[Runner] Node Dir:', nodeDir);
+
+        appendLog(`Executing: ${cmdStr}\n`);
+
+        try {
+            const child = spawn(cmdStr, [], {
+                cwd: projectPath,
+                shell: true,
+                env: env
+            });
+            
+            processes.set(id, child);
+            
+            child.stdout.on('data', (data) => {
+                const str = data.toString();
+                if (outputCallback) outputCallback({ id, data: str });
+                appendLog(str);
+            });
+            
+            child.stderr.on('data', (data) => {
+                const str = data.toString();
+                if (outputCallback) outputCallback({ id, data: str });
+                appendLog(`ERR: ${str}`);
+            });
+            
+            child.on('exit', () => {
+                processes.delete(id);
+                // Final rewrite
+                rewriteLogFile();
+                if (logStream) logStream.end();
+                if (exitCallback) exitCallback({ id });
+            });
+            
+            child.on('error', (err) => {
+                console.error('[Runner] Spawn error:', err);
+                const errMsg = `Error spawning process: ${err.message}`;
+                if (outputCallback) outputCallback({ id, data: errMsg });
+                appendLog(`${errMsg}\n`);
+                rewriteLogFile(); // Ensure log is saved
+                if (logStream) {
+                    logStream.end();
+                }
+                processes.delete(id);
+            });
+
+        } catch (e) {
+            if (logStream) logStream.end();
+            throw e;
+        }
     },
 
     stopProjectCommand: async (id) => {
         const child = processes.get(id);
         if (child) {
-            // Simple kill, might need tree-kill for robust process termination on Windows
-            child.kill(); 
+            if (process.platform === 'win32') {
+                try {
+                    // Kill process tree on Windows
+                    exec(`taskkill /pid ${child.pid} /T /F`);
+                } catch (e) {
+                    child.kill(); 
+                }
+            } else {
+                // Unix
+                child.kill(); 
+            }
             processes.delete(id);
         }
     },

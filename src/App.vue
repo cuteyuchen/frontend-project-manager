@@ -121,29 +121,30 @@ watch(() => nodeStore.versions, triggerSave, { deep: true });
 </script>
 
 <template>
-  <TitleBar v-if="target !== 'utools'" />
-  <div
-    class="flex h-screen w-screen bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-gray-100 font-sans overflow-hidden select-none transition-colors duration-300 antialiased"
-    :class="{ 'pt-8': target !== 'utools' }">
-    <Sidebar @navigate="v => currentView = v" />
-    <main class="flex-1 h-full overflow-hidden relative">
-      <!-- Modern deep gradient background -->
-      <div
-        class="absolute inset-0 bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 dark:from-[#0f172a] dark:via-[#1e293b] dark:to-[#0f172a] opacity-100 pointer-events-none transition-colors duration-300" />
-      <!-- Subtle accent glow -->
-      <div
-        class="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none">
-      </div>
-      <div
-        class="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none">
-      </div>
+  <div class="h-screen w-screen flex flex-col bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-gray-100 font-sans overflow-hidden select-none transition-colors duration-300 antialiased">
+    <TitleBar v-if="target !== 'utools'" />
+    
+    <div class="flex-1 flex overflow-hidden relative">
+      <Sidebar @navigate="v => currentView = v" />
+      <main class="flex-1 h-full overflow-hidden relative">
+        <!-- Modern deep gradient background -->
+        <div
+          class="absolute inset-0 bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 dark:from-[#0f172a] dark:via-[#1e293b] dark:to-[#0f172a] opacity-100 pointer-events-none transition-colors duration-300" />
+        <!-- Subtle accent glow -->
+        <div
+          class="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none">
+        </div>
+        <div
+          class="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none">
+        </div>
 
-      <div class="relative h-full z-10 backdrop-blur-[0px]">
-        <Dashboard v-if="currentView === 'dashboard'" />
-        <Settings v-if="currentView === 'settings'" />
-        <NodeManager v-if="currentView === 'nodes'" />
-      </div>
-    </main>
+        <div class="relative h-full z-10 backdrop-blur-[0px]">
+          <Dashboard v-if="currentView === 'dashboard'" />
+          <Settings v-if="currentView === 'settings'" />
+          <NodeManager v-if="currentView === 'nodes'" />
+        </div>
+      </main>
+    </div>
   </div>
 </template>
 

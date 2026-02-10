@@ -32,6 +32,7 @@ export default {
     openInEditor: 'Open in Editor',
     openInExplorer: 'Open in Explorer',
     start: 'Start',
+    restart: 'Restart',
     stop: 'Stop',
     logs: 'Logs',
     deleteProject: 'Delete Project',

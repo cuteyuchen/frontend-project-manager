@@ -32,6 +32,7 @@ export default {
     openInEditor: '在编辑器中打开',
     openInExplorer: '在文件夹中打开',
     start: '启动',
+    restart: '重启',
     stop: '停止',
     logs: '日志',
     deleteProject: '删除项目',
